@@ -357,9 +357,11 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
             ENDIF
           IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
 c ... for Aubert-Frecon 3x3 Li2(c) {3,0,6,6,8,8} case ...
-              CALL AF3X3(RE,CmVAL,RE,DE,RE3,RE6,C6adj,C9adj,ULR,
+               CALL AF3x3ret(RE,CmVAL,RE,DE,RE3,RE6,C6adj,C9adj,ULR,
      1                DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe,MXMLR)
 c    ULRe=ULR+C9adj*RE6*RE3
+
+
                   ULRe=ULR
 
               WRITE(6,698) (CmVAL(i),i=2,4)
@@ -405,7 +407,7 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
                 ENDIF
 c ... for Aubert-Frecon 3x3 Li2(c) {3,0,6,6,8,8} case ...
               IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
-              CALL AF3X3(RTP(i),CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
+              CALL AF3x3ret(RTP(i),CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
      1                   DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe,MXMLR)
 c                  ULR=ULR+C9adj*RTP6*RTP3
                   ULR=ULR
@@ -1078,7 +1080,7 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
                ENDIF
           IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
 c ... extension for Aubert-Frecon 3X3 Li2(c) {3,0,6,6,8,8} case ...
-          CALL AF3X3(RE,CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
+          CALL AF3x3ret(RE,CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
      1           DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe,MXMLR)
 c                 ULRe=ULR+C9adj*RE6*RE3
                  ULRe=ULR
@@ -1157,7 +1159,7 @@ c    1      + RTP3*(CmVAL(3)*(3.d0 + T0P) + CmVAL(4)*(3.d0 - T0P)))/Re
               ENDIF
            IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
 c ... extension for Aubert-Frecon 3X3 Li2(c) {3,0,6,6,8,8} case ...
-           CALL AF3X3(RDIST,CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
+           CALL AF3x3ret(RDIST,CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
      1           DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe,MXMLR)
 c                 ULR=ULR+C9adj*RTP3*RTP6
                  ULR=ULR

@@ -17,15 +17,11 @@ endif
 #
 # as usual, list the objects
 #
-OBJECTS = betaFIT.o nllssrr.o llsqf.o AF3X3.o
+OBJECTS = betaFITret.o nllssrr.o llsqf.o AF3x3ret.o
 
 betafit: $(OBJECTS)
-	$(FC) $(FFLAGS) $(OBJECTS) -o betaf.x
+	$(FC) $(FFLAGS) $(OBJECTS) -o betafRet.x
 
-# option to clean everything up afterwards
-#
-#clean:
-#         rm -f *.o lev.x
 #--------------------------------------------------------------
 # Form from Sean Mcleod,  13 February 2008
 #--------------------------------------------------------------

@@ -1,14 +1,16 @@
-      SUBROUTINE AF3X3(RDIST,CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
-     1 DEIGM1,DEIGR,MXMLR)
+      SUBROUTINE AF3X3(RDIST,CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
+     1 DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe,MXMLR)
 
-      REAL*8           H(3,3),DM1(3,3),DR(3,3),Q(3,3),CmVAL(MXMLR)
-      REAL*8           DEIGM1(1,1),DEIGR(1,1)		
+      REAL*8          H(3,3),DM1(3,3),DM3(3,3),DM5(3,3),DR(3,3),DDe(3,3)
+      REAL*8           Q(3,3),CmVAL(MXMLR)
+      REAL*8           DEIGM1(1,1),DEIGM3(1,1),DEIGM5(1,1),DEIGR(1,1),
+     1                    DEIGDe(1,1)
       DOUBLE PRECISION W(3)
-      DOUBLE PRECISION EIGVEC(3,1)	
-      REAL*8           RDIST,RE,RE3,RE6,C6adj,C9adj,DELTAE,ULR 
+      DOUBLE PRECISION EIGVEC(3,1)
+      REAL*8           RDIST,RE,De,RE3,RE6,C6adj,C9adj,DELTAE,ULR 
       REAL*8           RESID(3,1)
 
-      REAL*8           M1,M2
+      REAL*8           M1,M2,M3,M5
 
       INTEGER          I,J,L,K
       INTEGER          ISTATE,MXMLR
@@ -16,34 +18,82 @@
       DOUBLE PRECISION MODULUS
       REAL*8           Z
 
+c M2 = C6sigma, M3 = C6 adj
+
       M1 = CmVAL(1)
       M2 = CmVAL(3)
+      M3 = C6adj
+      M5 = CmVAL(5)
       DELTAE = CmVAL(2)
 
 c WRITE(25,*) 'Variables = "r", "U(r)","U(r)-U(r)^2/(4De)" ' 
 c WRITE(25,*) 'zone T = "U(r)"'
  
-	    DM1(1,1)=-1.D0/(3.D0*RDIST**3)
-	    DM1(1,2)=SQRT(2.D0)/(3.D0*RDIST**3)
-	    DM1(1,3)=SQRT(6.D0)/(6.D0*RDIST**3)
-	    DM1(2,1)=DM1(1,2)
-	    DM1(2,2)=-2.D0/(3.D0*RDIST**3)
-	    DM1(2,3)=SQRT(3.D0)/(6.D0*RDIST**3)
-	    DM1(3,1)=DM1(1,3)
-	    DM1(3,2)=DM1(2,3)
-	    DM1(3,3)=0.D0
 
-          DR(1,1)=M1/RDIST**4
-          DR(1,2)=-SQRT(2.D0)*M1/(RDIST**4)
-	    DR(1,3)=-SQRT(6.D0)*(M1/(2.D0*RDIST**4))
-          DR(2,1)=DR(1,2)
-          DR(2,2)=2.D0*M1/(RDIST**4)
-	    DR(2,3)=-SQRT(3.D0)*M1/(2.D0*RDIST**4)
-          DR(1,3)=DR(3,1)
-          DR(2,3)=DR(3,2)
-          DR(3,3)=0.D0
+            DR(1,1) = dble((6 *M1*RDIST**5*De + 12 * RDIST **
+     1        2 * M2 * De + 3 * RDIST ** 2 * M1 ** 2 + 16 * M5 * De) /
+     2        RDIST ** 9 / De) / 0.6D1
+            DR(1,2) = -dble(6 * M1 * RDIST ** 5 * De + 12 * RDIST ** 2
+     1        * M2 * De + 3 * RDIST ** 2 * M1 ** 2 + 16 * M5 * De) *
+     2         sqrt(0.2D1) / dble(RDIST ** 9) /
+     3         dble(De) / 0.6D1
+            DR(1,3) = -sqrt(0.6D1) * dble(M1) / dble(RDIST ** 4) / 0.2D1
+            DR(2,1) = DR(1,2)
+            DR(2,2) = dble((6 * M1 * RDIST ** 5 * De + 12 * RDIST ** 2 *
+     1          M2 * De + 3 * RDIST ** 2 * M1 ** 2 + 16 * M5 * De) /
+     2          RDIST ** 9 / De) / 0.3D1
+            DR(2,3) = -dble(M1) * sqrt(0.3D1) / dble(RDIST ** 4) / 0.2D1
+            DR(3,1) = -sqrt(0.6D1) * dble(M1) / dble(RDIST ** 4) / 0.2D1
+            DR(3,2) = -dble(M1) * sqrt(0.3D1) / dble(RDIST ** 4) / 0.2D1
+            DR(3,3) = 0.d0
 
-            CALL ZHEEVJ3(H,Q,W,RDIST,M1,DELTAE)
+
+            DM1(1,1) = -dble((2 * RDIST ** 3 * De + M1) / RDIST ** 6 /
+     1       De) / 0.6D1
+            DM1(1,2) = dble(2 * RDIST ** 3 * De + M1) / dble(RDIST ** 6)
+     1       / dble(De) * sqrt(0.2D1) / 0.6D1
+            DM1(1,3) = sqrt(0.6D1) / dble(RDIST ** 3) / 0.6D1
+            DM1(2,1) = dble(2 * RDIST ** 3 * De + M1) / dble(RDIST ** 6)
+     1       / dble(De) * sqrt(0.2D1) / 0.6D1
+            DM1(2,2) = -dble((2 * RDIST ** 3 *De + M1) / RDIST ** 6 / De
+     1       ) / 0.3D1
+            DM1(2,3) = 0.1D1 / dble(RDIST ** 3) * sqrt(0.3D1) / 0.6D1
+            DM1(3,1) = sqrt(0.6D1) / dble(RDIST ** 3) / 0.6D1
+            DM1(3,2) = 0.1D1 / dble(RDIST ** 3) * sqrt(0.3D1) / 0.6D1
+            DM1(3,3) = 0.d0
+
+          DM3(1,1)=-1.d0/(3.d0*RDIST**6)
+          DM3(1,2)=-SQRT(2.d0)*DM3(1,1)
+          DM3(1,3)=0.D0
+          DM3(2,1)=DM3(1,2)
+          DM3(2,2)=2.d0*DM3(1,1)
+          DM3(2,3)=0.D0
+          DM3(3,1)=DM3(1,3)
+          DM3(3,2)=DM3(2,3)
+          DM3(3,3)=0.D0
+
+          DM5(1,1)=DM3(1,1)/(RDIST**2)
+          DM5(1,2)=DM3(1,2)/(RDIST**2)
+          DM5(1,3)=0.D0
+          DM5(2,1)=DM3(1,2)
+          DM5(2,2)=DM3(2,2)/(RDIST**2)
+          DM5(2,3)=0.D0
+          DM5(3,1)=DM5(1,3)
+          DM5(3,2)=DM5(2,3)
+          DM5(3,3)=0.D0
+
+
+       DDe(1,1)=M1**2/(12.D0*RDIST**6*De**2)
+       DDe(1,2)=-SQRT(2.D0)*DDe(1,1)
+       DDe(1,3)=0.D0
+       DDe(2,1)=DDe(1,2)
+       DDe(2,2)=2.D0*DDe(1,1)
+       DDe(2,3)=0.d0
+       DDe(3,1)=DDe(1,3)
+       DDe(3,2)=DDe(2,3)
+       DDe(3,3)=0.D0
+
+            CALL ZHEEVJ3(H,Q,W,RDIST,M1,M2,M3,M5,De,DELTAE)
 	     
 	    L=1
 	    DO J=2,3
@@ -59,13 +109,14 @@ c WRITE(25,*) 'zone T = "U(r)"'
 	    ENDDO	
 
    30       DEIGM1 =- MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM1,EIGVEC))           
-   40       DEIGR =- MATMUL(TRANSPOSE(EIGVEC),MATMUL(DR,EIGVEC))
+   40       DEIGR   =- MATMUL(TRANSPOSE(EIGVEC),MATMUL(DR,EIGVEC))
+   50       DEIGDe = - MATMUL(TRANSPOSE(EIGVEC),MATMUL(DDe,EIGVEC))
 
 c            WRITE(25,600) RDIST ,ULR 
 c  600 FORMAT(2D16.7)
 c
-	    WRITE(26,601) RDIST , DEIGM1, DEIGR 
-  601 FORMAT(3D16.7)	
+	    WRITE(26,601) RDIST ,ULR, DEIGM1, DEIGR ,DEIGDe
+  601 FORMAT(5D16.7)	
 
          Modulus = SQRABS(Z) 
 
@@ -74,9 +125,10 @@ c
       CONTAINS
 
 * ----------------------------------------------------------------------------
-      SUBROUTINE ZHEEVJ3(H, Q, W,RDIST,M1,DELTAE)
+      SUBROUTINE ZHEEVJ3(H,Q,W,RDIST,M1,M2,M3,M5,De,DELTAE)
+ 
 * ----------------------------------------------------------------------------
-      REAL*8           RDIST,M1,DELTAE
+      REAL*8           RDIST,M1,M2,M3,M5,De,DELTAE
 
       REAL*8           H(3,3),Q(3,3)
       DOUBLE PRECISION W(3)
@@ -101,15 +153,15 @@ c
 
 * initialize matrix elements
  
-            H(1,1)=-M1/(3.D0*(RDIST)**3)
-            H(1,2)=(SQRT(2.D0)/3.D0)*M1/(RDIST)**3
-            H(2,1)=H(1,2)
-            H(1,3)=(SQRT(6.D0)/6.D0)*M1/(RDIST)**3
-            H(3,1)=H(1,3)
-            H(2,2)=-2.D0/3.D0*M1/RDIST**3 + DELTAE
-            H(2,3)=(SQRT(3.D0)/6)*M1/RDIST**3
-            H(3,2)=H(2,3)
-            H(3,3)=DELTAE
+       H(1,1)=-(1.D0/3.D0)*(M1/(RDIST**3)+M3/(RDIST**6)+M5/(RDIST**8))
+       H(1,2)=-(SQRT(2.D0))*H(1,1)
+       H(2,1)=H(1,2)
+       H(1,3)=(SQRT(6.D0)/6.D0)*M1/(RDIST)**3
+       H(3,1)=H(1,3)
+       H(2,2)=2*H(1,1) + DELTAE
+       H(2,3)=(SQRT(3.D0)/6)*M1/RDIST**3
+       H(3,2)=H(2,3)
+       H(3,3)=DELTAE
 
 
 *     Initialize Q to the identitity matrix
