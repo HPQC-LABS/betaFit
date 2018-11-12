@@ -1,46 +1,35 @@
 c***********************************************************************
+c************  Program  PHIFIT_1.1  dated  4 August 2006  **************
+c***********************************************************************
 c* Program to fit NTP read-in potential fx. values {RTP(i),VTP(i)} to
-c  a chosen analytic form, to determine realistic initial estimates of i
-c  exponent expansion coefficients  phi_i  , for other purposes
-c A. Potential is an EMO    V(r) = De[ 1 - exp{-phi(y)*(r-Re)}]**2
-c    where  phi(y)  is a simple power series in the variable
-c    y = yp(r,a) = (r^p - a^p)(r^p + a^p)  for either  a=Re or a=constant
-c B. Potential is an MLJ(n)  V(r) = De[ 1 - (Re/r)^n exp{-phi(y) y}]**2
-c   where  EITHER
-c   (a) phi(y)= y phi_inf + [1-y] \sum {phi_i y^i}     or
-c   (b) phi(y)= [1-fsw] phi_inf + fsw \sum {phi_i y^i}  where
-c   phi_inf = ln[2 De (Re)^n/Cn]  with  Cn  the coefficient of the
-c   limiting long-range form of the potential  V(r) = De - Cn/r^n
-c   and y = yp(r) = (r^p - a^p)/(r^p + a^p) , for a=Re or a=constant 
-c C. to a  DELR  form ...
-c D. to a GPEF-type power series  V(r) = \sum{ c_n * y^n } 
+c  a chosen analytic form, to determine realistic initial estimates of 
+c  exponent expansion coefficients  phi_i  , for other purposes.
+c** See  http://leroy.uwaterloo.ca/programs/   for further documentation
 c***********************************************************************
-c                  Version of 9 June 2006
-c***********************************************************************
-      INTEGER MXDATA, MXPARM, MXNLR
-      PARAMETER (MXDATA=1501, MXPARM=30, MXNLR= 8)
-      INTEGER i,j,ITER,IROUND,ROBUST,LPRINT,IWR,NPARM,NTP,
+      INTEGER MXDATA, MXPARM, MXMLR
+      PARAMETER (MXDATA=1501, MXPARM=30, MXMLR= 8)
+      INTEGER i,j,ITER,IROUND,ROBUST,LPRINT,IWR,NPARM,NTP,MMN,
      1    IFXP(MXPARM)
       REAL*8 PHI(0:MXPARM),PV(MXPARM),PU(MXPARM),PS(MXPARM),
      1  CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
      2  uVTP(MXDATA),phiy(MXDATA),Uphiy(MXDATA),YD(MXDATA),
      3  phiINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
      4  Rep,AREF,AREFp,RTPp, AA,BB,VLR,dVLR,FCT,RAT,UMAX,
-     5  yp,fsw,ypRE,ReDE
-      CHARACTER*4  NNAME,NAME(4)
-      DATA NAME/' EMO',' MLJ','DELR','GPEF'/
-c
-      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,NMLR,NLR(MXNLR),p,NS,
-     1                                                         NL,NPHI
-      REAL*8 Re,De,VMIN,RREF,CN,Asw,Rsw,CMLR(MXNLR),RHOd,RTP(MXDATA),
-     1  as,bs
-      COMMON /DATABLK/Re,De,VMIN,RREF,CN,Asw,Rsw,CMLR,RHOd,RTP,as,bs,
-     1          PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,NMLR,NLR,p,NS,NL,NPHI
-c
+     5  yp,fsw,ypRE,ReDE, ReIN,DeIN,VMINin
+      CHARACTER*4  NNAME,NAME(5)
+      DATA NAME/' EMO',' MLJ',' MLR','DELR','GPEF'/
+c-----------------------------------------------------------------------
+      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR(MXMLR),p,
+     1                                                      NS,NL,NPHI
+      REAL*8 Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,as,bs,RHOd,CMLR(MXMLR),
+     1  RTP(MXDATA)
+      COMMON /DATABLK/Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,RHOd,as,bs,CMLR,
+     1  RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR,p,NS,NL,NPHI
+c-----------------------------------------------------------------------
       ROBUST= 0
 c-----------------------------------------------------------------------
 c** PSEL  specifies the type of potential being fitted to:
-c     PSEL= 1  for EMO ;   PSEL= 2  for MLJ   PSEL= 3  for DELR
+c     PSEL=1 for EMO;   PSEL=2 for an MLR (or MLJ);   PSEL=3  for DELR ;
 c     PSEL= 4  for GPEF
 c* NPT  is the number of read-in potential points being fitted to.
 c* UNC  is the energy uncertainty associated with the potential points
@@ -73,19 +62,24 @@ c=======================================================================
       READ(5,*) Re, De, VMIN
       READ(5,*) IFXRe, IFXDe, IFXVMIN
 c=======================================================================
-c** For an MLJ_p potential (PSEL=2), read the power NCN & coefficient CN
+      ReIN= Re
+      DeIN= De
+      VMINin= VMIN
+c** For an MLR_p potential (PSEL=2), read the power NCN & coefficient CN
 c   to define limiting long-range potential tail:  V(r)= De - CN/r^NCN
-c** For an MLJ potential (PSEL=2) for which wish to use exponent 
-c    switching function  fsw(r)= 1/[exp{Asw*(r-Rsw)} + 1] to define
-c    phi(y)= [1-fsw] phi_inf + fsw \sum {phi_i y^i} read positive
-c    values of Asw and Rsw; otherwise, set them .LE. 0.
-c    For other potential forms,  Asw  and  Rsw  are dummy variables.
+c ... also read power MCM and ratio RCMCN=Cm/Cn for second long-range term
+c    if  MCM.le.NCN   or  RCMCN.le.0  consider only single term.
+c** To use the switching function  fsw(r)= 1/[exp{Asw*(r-Rsw)} + 1]  form
+c   of exponent coefft  phi(y)= [1-fsw] phi_inf + fsw \sum {phi_i y^i} 
+c   read positive values of Asw and Rsw; otherwise, set them .LE. 0 and
+c        phi(r)= yp phi_inf + [1 - yp] Sum{ phi_i yp^i }
 c=======================================================================
-      IF(PSEL.EQ.2) READ(5,*) NCN, CN, Asw, Rsw
+      IF(PSEL.EQ.2) READ(5,*) NCN, CN, MCM, RCMCN, Asw, Rsw
 c=======================================================================
+      IF(RCMCN.LE.0.d0) MCM= 0
       IF(PSEL.EQ.3) THEN
 c* For a DELR potential, NMLR is the number of long-range terms in the
-c  sum  V_{LR}(r)= \sum_m{D_m(r) CMLR(m)/r^m} , where powers are m= NLR
+c  sum  V_{LR}(r)= \sum_m{D_m(r) CMLR(m)/r^m} , where powers are m= MLR
 c  and  RHOd  is the scaling factor \rho_d in the damping function.
 c* If  IDF= 1  use the Tang-Toennies damping function
 c   D_m(r)= 1 - exp{-3.16*RHOd*r} \Sum_{k=0}^{NMLR} (3.16*RHOd*r)**{k}/k!
@@ -101,7 +95,9 @@ c    value another way.  A one way would be to do an EMO_{p} fit to the
 c    potential points, treating the barrier maximum as dissociation
 c=======================================================================
           READ(5,*) NMLR ,RHOd, IDF, PHI(0)
-          READ(5,*) (NLR(j), CMLR(j), j= 1, NMLR)
+          DO  j=1, NMLR
+              READ(5,*) MLR(j), CMLR(j)
+              ENDDO
 c=======================================================================
           PHI(0)= 1.d0
           ENDIF
@@ -115,33 +111,47 @@ c=======================================================================
       READ(5,*) (RTP(i), VTP(i),i= 1,NTP)
 c=======================================================================
       IF(PSEL.EQ.1) WRITE(6,600) Re, De
-      IF(PSEL.EQ.2) WRITE(6,602) NCN, Re, De, NCN, CN
+      IF(PSEL.EQ.2) THEN
+          IF(MCM.LE.NCN) THEN
+              NNAME= NAME(2)
+              WRITE(6,602) NAME(2), NCN, Re, De, NCN, CN
+            ELSE
+              NNAME= NAME(3)
+              WRITE(6,602) NAME(3),NCN, Re, De, NCN, CN
+              WRITE(6,609) MCM,MCM,NCN,RCMCN
+            ENDIF
+          ENDIF
       IF(PSEL.EQ.3) THEN
           RHOp= RHOd
           IF(IDF.EQ.1) RHOd= 3.16d0*RHOd
-          WRITE(6,604) Re, De, RHOp, NMLR,(NLR(j),CMLR(j),j=1, NMLR)
+          WRITE(6,604) Re, De, RHOp, NMLR,(MLR(j),CMLR(j),j=1, NMLR)
           ENDIF
       IF(PSEL.EQ.4) WRITE(6,605) as,bs,Re
       WRITE(6,606) NTP,VMIN,UNC,(RTP(i),VTP(i),i= 1,NTP)
       WRITE(6,608)
 c
-  600 FORMAT(' Determine  EMOp exponent expansion coefficients'/
-     1  1x,20('==')/' Start with   Re=',f11.8,'   De=',f11.4)
+  600 FORMAT(' Determine  EMOp  exponent expansion coefficients'/
+     1  1x,24('==')/' Start with   Re=',f11.8,'   De=',f11.4)
   601 FORMAT(' Using exponent expansion variable  yp(r)= [r^p -',f6.2,
      `  '^p]/[r^p +',f6.2,'^p]' )
-  602 FORMAT(' Determine  MLJp(n=',i2,')  exponent expansion coefficient
-     1s'/1x,20('==')/' Start with   Re=',f11.8,'   De=',f11.4,'   C',
+  602 FORMAT(' Determine ',A4,'p(n=',i2,')  exponent expansion coefficie
+     1nts'/1x,27('==')/' Start with   Re=',f11.8,'   De=',f11.4,'   C',
      2  i1,'=',1PD15.8)
+  609 FORMAT('    and allows for  C',i1,'  with  C',i1,'/C',i1,' =',
+     1 f8.4)
+  616 FORMAT(' *** Since  p=',i2,' .LE. (MCM-NCN)=',i2,'   OMIT  C',i2,
+     1  '/C',i1,'  constraint')
   603 FORMAT(' Use exponent expansion variable  yp(r)= [r^p - Re^p]/[r^p
      1 + Re^p]' )
   604 FORMAT(' Determine  DELRp potential exponent expansion coefficient
-     1s'/1x,32('==')/' Start with   Re=',f11.8,'   De=',f11.4,
+     1s'/1x,29('==')/' Start with   Re=',f11.8,'   De=',f11.4,
      2  '   where   RHOd=',f10.6/5x,'and  V_{LR}  has',i2,
      3 ' inverse-power terms with coefficients (-ve attractive):'/
      4  (1x,3('   C_{',i2,'}=',1Pd15.7:)))
-  605 FORMAT(' Determine coefficient for a  GPEF{p}  polynomial in the e
-     1xpansion variable'/15x,'y= (R^p - Re^p)/(',1Pd11.3,'*R^p',1x,SP,
-     2  d11.3,'*Re^p)'/5x,'with initial   Re=',0pf12.8 )
+  605 FORMAT(' Determine coefficient for a  GPEF{p}  polynomial potentia
+     1l using the'/1x,29('==')/' expansion variable:   y= (R^p - Re^p)/(
+     2',1Pd11.3,'*R^p',1x,SP,d11.3,'*Re^p)'/' with initial   Re=',
+     3 0pf12.8 )
   606 FORMAT(/' Fit to',I5,' input turning points with initial energy mi
      1nimum   VMIN=',f11.4/'    assuming uncertainties of  u(VTP)=',
      2  1PD9.2,'  for all input potential values.'/1x,39('--')/
@@ -167,15 +177,18 @@ c      - for  RREF.gt.0 , fix parameter  RREF   at its read-in value
 c-----------------------------------------------------------------------
    10 READ(5,*, END= 999) p, NS, NL, RREF
 c-----------------------------------------------------------------------
+      Re= ReIN
+      De= DeIN
+      VMIN= VMINin
       IF((p.LE.0).OR.(NS.LE.0).OR.(NL.LE.0)) GOTO 999
       IF(PSEL.EQ.1) WRITE(6,600) Re, De
       IF(PSEL.EQ.2) THEN
-          WRITE(6,602) NCN, Re, De, NCN, CN
+          WRITE(6,602) NNAME,NCN, Re, De, NCN, CN
           IF(Asw.GT.0.d0) WRITE(6,632) Asw, Rsw
           IF(Asw.LE.0.d0) WRITE(6,634) 
           ENDIF
       IF(PSEL.EQ.3) THEN
-          WRITE(6,604) Re, De, RHOp, NMLR,(NLR(j),CMLR(j),j=1, NMLR)
+          WRITE(6,604) Re, De, RHOp, NMLR,(MLR(j),CMLR(j),j=1, NMLR)
           IF(IDF.EQ.1) WRITE(6,614)
           IF(IDF.EQ.2) WRITE(6,612)
           ENDIF
@@ -254,11 +267,22 @@ c%%
 c=======================================================================
       IF(PSEL.EQ.2) THEN
 c-----------------------------------------------------------------------
-c*** Preliminary linearized fit for an  MLJp  potential ...
+c*** Preliminary linearized fit for an  MLRp  potential ...
 c** First define array of exponent values with uncertainties defined by 
 c  the assumption that all potential values have equal uncertainties UNC
           NNAME= NAME(2)
           phiINF= DLOG(2.d0*De*Re**NCN/CN)
+          IF(MCM.GT.NCN) THEN
+              IF(p.GT.MCM-NCN) THEN
+                  NNAME= NAME(3)
+                  MMN= MCM - NCN
+                  phiINF= phiINF - DLOG(1.d0 + RCMCN/Re**MMN)
+                  WRITE(6,609) MCM,MCM,NCN,RCMCN
+                ELSE
+                  MMN= 0
+                  WRITE(6,616) p, MCM-NCN, MCM, NCN
+                ENDIF
+              ENDIF
           Rep= RE**p
           DO  i= 1, NTP
               RTPp= RTP(i)**p
@@ -282,13 +306,18 @@ c  the assumption that all potential values have equal uncertainties UNC
                     ELSE
                       Uphiy(i)= DSQRT(UNC/De)
                     ENDIF
+                
                 ENDIF
+              IF(MMN.GT.0) THEN
+                  phiy(i)= phiy(i) - DLOG(1.d0+ RCMCN/Re**MMN) + 
+     1                                    DLOG(1.d0+ RCMCN/RTP(i)**MMN)
+                  ENDIF
               IF(Asw.LE.0.d0) THEN
-c** For Huang's MLJ exponent function
+c** For Huang's MLR exponent function
                   phiy(i)= phiy(i)- phiINF*yp*ypRE
                   yPOW= ypRE*(1.d0- yp)
                 ELSE
-c** For Photos' MLJ exponent switching function
+c** For Photos' origonal MLJ exponent switching function
                   fsw= 1.d0/(DEXP(Asw*(RTP(i)- Rsw)) + 1.d0)
                   phiy(i)= phiy(i)- phiINF*ypRE*(1.d0 - fsw)
                   yPOW= ypRE*fsw
@@ -319,21 +348,21 @@ c-----------------------------------------------------------------------
       IF(PSEL.EQ.3) THEN
 c ... NOTE need iteration to determine self-consistent  phi(0)  value
 c  First generate  A & B  from input Re, De and trial phi(0)
-          NNAME= NAME(3)
+          NNAME= NAME(4)
           ITER= 0
    40     VLR= 0.d0
           dVLR= 0.d0
           IF(IDF.EQ.2) THEN
 c... Using Scoles-type damping function ...
               DO  j= 1,NMLR
-                  FCT= dexp(-3.97d0*RHOd*Re/NLR(j)
-     1                    - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(NLR(j))))
-                  AA= CMLR(j)*((1.d0- FCT)/Re)**NLR(j)
+                  FCT= dexp(-3.97d0*RHOd*Re/MLR(j)
+     1                    - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(MLR(j))))
+                  AA= CMLR(j)*((1.d0- FCT)/Re)**MLR(j)
                   VLR= VLR+ AA
-                  dVLR= dVLR- NLR(j)*AA/Re
-                  BB= FCT*(3.97d0*RHOd/NLR(j) 
-     1                      + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(NLR(j))))
-                  dVLR= dVLR+  NLR(j)*BB*AA/(1.d0- FCT)
+                  dVLR= dVLR- MLR(j)*AA/Re
+                  BB= FCT*(3.97d0*RHOd/MLR(j) 
+     1                      + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(MLR(j))))
+                  dVLR= dVLR+  MLR(j)*BB*AA/(1.d0- FCT)
                   ENDDO
               ENDIF
           IF(IDF.EQ.1) THEN
@@ -341,7 +370,7 @@ c... Using Tang-Toennies damping function ...
               TT(0)= 1.d0
               yPOW= 1.d0
               RHOdR= RHOd*Re
-              DO  j= 1,NLR(NMLR)
+              DO  j= 1,MLR(NMLR)
                   yPOW= yPOW*RHOdR/DFLOAT(J)
                   TT(J)= TT(J-1)+ yPOW
                   ENDDO
@@ -349,10 +378,10 @@ c... Using Tang-Toennies damping function ...
               VLR= 0.d0
               dVLR= 0.d0
               DO  j= 1,NMLR
-                  TTM= (1.d0- yPOW*TT(NLR(j)))*CMLR(j)/Re**NLR(j)
+                  TTM= (1.d0- yPOW*TT(MLR(j)))*CMLR(j)/Re**MLR(j)
                   VLR= VLR+ TTM
-		      dVLR= dVLR+ yPOW*RHOd*(TT(NLR(j)) - TT(NLR(j)-1))
-     1                             *CMLR(j)/Re**NLR(j) - NLR(j)*TTM/Re
+		      dVLR= dVLR+ yPOW*RHOd*(TT(MLR(j)) - TT(MLR(j)-1))
+     1                             *CMLR(j)/Re**MLR(j) - MLR(j)*TTM/Re
                   ENDDO
               ENDIF
           AA= De + VLR + dVLR/phi(0)
@@ -368,9 +397,9 @@ c... Using Tang-Toennies damping function ...
               IF(IDF.EQ.2) THEN
 c... if using Scoles damping function ...
                   DO  j= 1,NMLR
-                      FCT= dexp(-3.97d0*RHOd*RTP(i)/NLR(j)
-     1                - 0.39d0*(RHOd*RTP(i))**2/DSQRT(DFLOAT(NLR(j))))
-                      VLR= VLR+ CMLR(j)*((1.d0-FCT)/RTP(i))**NLR(j)
+                      FCT= dexp(-3.97d0*RHOd*RTP(i)/MLR(j)
+     1                - 0.39d0*(RHOd*RTP(i))**2/DSQRT(DFLOAT(MLR(j))))
+                      VLR= VLR+ CMLR(j)*((1.d0-FCT)/RTP(i))**MLR(j)
                       ENDDO
                   ENDIF
               IF(IDF.EQ.1) THEN
@@ -378,12 +407,12 @@ c... if using Tang-Toennies damping function ...
                   RHOdR= RHOd*RTP(i)
                   yPOW= DEXP(-RHOdR)
                   TT(0)= yPOW
-                  DO  j= 1,NLR(NMLR)
+                  DO  j= 1,MLR(NMLR)
                       yPOW= yPOW*RHOdR/DFLOAT(J)
                       TT(J)= TT(J-1)+ yPOW
                       ENDDO
                   DO  j=1,NMLR
-                      VLR= VLR+CMLR(j)*(1.d0-TT(NLR(j)))/RTP(i)**NLR(j)
+                      VLR= VLR+CMLR(j)*(1.d0-TT(MLR(j)))/RTP(i)**MLR(j)
                       ENDDO
                   ENDIF
               FCT= (VTP(i)-VMIN-VLR-De)/AA + RAT**2
@@ -536,7 +565,7 @@ c=======================================================================
 c*** For case of a  GPEF  potential ...
 c-----------------------------------------------------------------------
       IF(PSEL.EQ.4) THEN
-          NNAME= NAME(4)
+          NNAME= NAME(5)
           DO  i= 1,NTP
               uVTP(i)= UNC
               phiy(i)= VTP(i)
@@ -628,7 +657,7 @@ c-----------------------------------------------------------------------
   646 FORMAT(' !!! CAUTION !!! Iteration to optimize  phi(0)  not conver
      1ged after',i3,' tries')
   648 FORMAT('   Converge on   phi_0=',f9.6,'   Next change=',1Pd9.1)
-  650 FORMAT(/' Fit to GPEF{p=',i1,'} potential with   As='F5.2,
+  650 FORMAT(/' Fit to GPEF{p=',i1,'} potential with   As=',F5.2,
      1  '   Bs=',F5.2,'   yields   DSE=',1Pd9.2/
      2  (6x,'c_{',i2,'} =',d17.9,' (+/-',d8.1,')   PS=',d8.1))
   654 FORMAT(/' *** PROBLEM *** freeing De makes DSE increase from',
@@ -639,23 +668,22 @@ c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
       SUBROUTINE DYIDPJ(IDAT,NDATA,NPARM,IFXP,YC,PV,PD,PS,RMSR)
-      INTEGER MXDATA, MXPARM, MXNLR
-
-      PARAMETER (MXDATA=1501, MXPARM=30, MXNLR= 8)
-      INTEGER  j,IDAT, NPOW ,NPARM, NDATA, IFXP(MXPARM),JFXRe,JFXDe,
+      INTEGER MXDATA, MXPARM, MXMLR
+      PARAMETER (MXDATA=1501, MXPARM=30, MXMLR= 8)
+      INTEGER  j,IDAT, NPOW,NPARM,NDATA,MMN, IFXP(MXPARM),JFXRe,JFXDe,
      1  JFXVMIN
       REAL*8  YC,PV(NPARM),PD(NPARM),PS(NPARM),TT(0:20),RHOdR,RMSR,RTPp,
      1  Rep,AREF,AREFp,ype,dype,phiINF,yp,fsw,yPOW,XP,XPW,DER,TTM,TTMM,
      2  DERP,SUM,DSUM,AA,BB,FCT,VLR,VLRe,dVLRe,d2VLRe,VCN,DDER
-c
-      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,NMLR,NLR(MXNLR),p,NS,
-     1                                                         NL,NPHI
-      REAL*8 Re,De,VMIN,RREF,CN,Asw,Rsw,CMLR(MXNLR),RHOd,RTP(MXDATA),
-     1  as,bs
-      COMMON /DATABLK/Re,De,VMIN,RREF,CN,Asw,Rsw,CMLR,RHOd,RTP,as,bs,
-     1          PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,NMLR,NLR,p,NS,NL,NPHI
-c
-      SAVE JFXRe,JFXDe,JFXVMIN, AREF,AREFp,Rep,phiINF,AA,BB
+c-----------------------------------------------------------------------
+      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR(MXMLR),p,
+     1                                                      NS,NL,NPHI
+      REAL*8 Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,as,bs,RHOd,CMLR(MXMLR),
+     1  RTP(MXDATA)
+      COMMON /DATABLK/Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,RHOd,as,bs,CMLR,
+     1  RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR,p,NS,NL,NPHI
+c-----------------------------------------------------------------------
+      SAVE JFXRe,JFXDe,JFXVMIN,MMN, AREF,AREFp,Rep,phiINF,AA,BB
 c=======================================================================
 c** NOTE BENE(!!) for non-linear fits, need to be sure that the
 c  calculations of YC and PD(j) are based on the current UPDATED PV(j)
@@ -715,7 +743,7 @@ c** If appropriate, also get partial derivative w.r.t. De & VMIN
           ENDIF
 
 c=======================================================================
-c  For the case of an  MLJ_{p}  potential ...
+c  For the case of an  MLR_{p}  potential ...
 c-----------------------------------------------------------------------
       IF(PSEL.EQ.2) THEN
           IF(IDAT.EQ.1) THEN
@@ -727,6 +755,11 @@ c-----------------------------------------------------------------------
               AREFp= AREF**p
               Rep= Re**p
               phiINF= DLOG(2.d0*De*Re**NCN/CN)
+              IF(MCM.GT.NCN) THEN
+                  MMN= MCM - NCN
+                  IF(p.LE.MMN) MMN= 0
+                  IF(MMN.GT.0) phiINF= phiINF- DLOG(1.d0+ RCMCN/Re**MMN)
+                  ENDIF
               ENDIF
           RTPp= RTP(IDAT)**p
           yp= (RTPp - AREFp)/(RTPp + AREFp)
@@ -739,7 +772,7 @@ c-----------------------------------------------------------------------
               fsw= 1.d0/(dexp(Asw*(RTP(IDAT)-Rsw)) + 1.d0)
               yPOW= fsw
             ENDIF
-          SUM= yPOW*PV(1)
+          SUM= PV(1)*yPOW
           DSUM= 0.d0
           IF(NPOW.GE.2) THEN
               DO  j= 2,NPOW
@@ -749,11 +782,13 @@ c-----------------------------------------------------------------------
                   ENDDO
               ENDIF
           IF(Asw.LE.0.d0) THEN
-              XP= SUM+ phiINF*yp
+              XP= SUM + phiINF*yp
             ELSE
-              XP= SUM+ phiINF*(1.d0 - fsw)
+              XP= SUM + phiINF*(1.d0 - fsw)
             ENDIF
           XPW= DEXP(-XP*ype) * (Re/RTP(IDAT))**NCN
+          IF(MMN.GT.0) XPW= XPW*(1.d0 + RCMCN/RTP(IDAT)**MMN)/
+     1                                           (1.d0 + RCMCN/Re**MMN)
           YC= De*(1.d0 - XPW)**2 + VMIN
           DER= 2.d0*De*(1.d0- XPW)*XPW
           IF(Asw.LE.0.d0) THEN
@@ -780,11 +815,13 @@ c** If appropriate, also get partial derivative w.r.t. Re
               IF(Asw.LE.0.d0) THEN
 c ... either for Huang exponent function ...
                   IF(RREF.LE.0.d0) THEN
-                      DSUM= phiINF - SUM + DSUM 
+                      DSUM= phiINF - SUM/(1.d0-yp) + DSUM 
                     ELSE
                       DSUM= 0.d0
                     ENDIF
-                  PD(NPHI+1)= DER*((ype*yp*NCN- NCN)/Re + 
+                  yPOW= NCN
+                  IF(MMN.GT.0) yPOW= yPOW+ MMN*RCMCn/(Re**MMN + RCMCN)
+                  PD(NPHI+1)= DER*((ype*yp*yPOW- yPOW)/Re + 
      1                                           dype*(XP + ype*DSUM))
                 ELSE
 c ... or for Hajigeorgiou exponent function ...
@@ -814,19 +851,19 @@ c** Evaluate VLR & its first 2 deriv. at  Re ...
               IF(IDF.EQ.2) THEN
 c... if using Scoles' damping function ...
                   DO  j= 1,NMLR
-                      FCT= dexp(-3.97d0*RHOd*Re/NLR(j)
-     1                    - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(NLR(j))))
-                      VCN= CMLR(j)*((1.d0- FCT)/Re)**NLR(j)
+                      FCT= dexp(-3.97d0*RHOd*Re/MLR(j)
+     1                    - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(MLR(j))))
+                      VCN= CMLR(j)*((1.d0- FCT)/Re)**MLR(j)
                       VLRe= VLRe+ VCN
-                      dVLRe= dVLRe- NLR(j)*VCN/Re
-                      DDER= FCT*(3.97d0*RHOd/NLR(j)
-     1                      + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(NLR(j))))
-                      dVLRe= dVLRe+  NLR(j)*DDER*VCN/(1.d0- FCT)
-                      d2VLRe= d2VLRe + NLR(j)*(NLR(j)+1)*VCN/Re**2
-     1                     - 2.d0*NLR(j)**2 *DDER*VCN/((1.d0- FCT)*Re)
-     2                    + ((NLR(j)-1)*DDER**2 - DDER*(1.d0- FCT)/FCT
-     3         + (1.d0- FCT)*FCT*0.78d0*RHOd**2/DSQRT(DFLOAT(NLR(j))))
-     4                                      *NLR(j)*VCN/(1.d0- FCT)**2
+                      dVLRe= dVLRe- MLR(j)*VCN/Re
+                      DDER= FCT*(3.97d0*RHOd/MLR(j)
+     1                      + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(MLR(j))))
+                      dVLRe= dVLRe+  MLR(j)*DDER*VCN/(1.d0- FCT)
+                      d2VLRe= d2VLRe + MLR(j)*(MLR(j)+1)*VCN/Re**2
+     1                     - 2.d0*MLR(j)**2 *DDER*VCN/((1.d0- FCT)*Re)
+     2                    + ((MLR(j)-1)*DDER**2 - DDER*(1.d0- FCT)/FCT
+     3         + (1.d0- FCT)*FCT*0.78d0*RHOd**2/DSQRT(DFLOAT(MLR(j))))
+     4                                      *MLR(j)*VCN/(1.d0- FCT)**2
                       ENDDO
                   ENDIF
               IF(IDF.EQ.1) THEN
@@ -834,7 +871,7 @@ c... Using Tang-Toennies damping function ...
                   TT(0)= 1.d0
                   yPOW= 1.d0
                   RHOdR= RHOd*Re
-                  DO  j= 1,NLR(NMLR)
+                  DO  j= 1,MLR(NMLR)
                       yPOW= yPOW*RHOdR/DFLOAT(J)
                       TT(J)= TT(J-1)+ yPOW
                       ENDDO
@@ -843,14 +880,14 @@ c... Using Tang-Toennies damping function ...
                   dVLRe= 0.d0
                   d2VLRe= 0.d0
                   DO  j= 1,NMLR
-                      TTM= (1.d0- yPOW*TT(NLR(j)))*CMLR(j)/Re**NLR(j)
+                      TTM= (1.d0- yPOW*TT(MLR(j)))*CMLR(j)/Re**MLR(j)
                       VLRe= VLRe+ TTM
-                      TTMM= yPOW*RHOd*(TT(NLR(j)) - TT(NLR(j)-1))
-     1                             *CMLR(j)/Re**NLR(j)
-                      dVLRe= dVLRe+ TTMM - NLR(j)*TTM/Re
-                      d2VLRe= d2VLRe + NLR(j)*(NLR(j)+1)*TTM/Re**2
-     1                 + yPOW*RHOd**2*(-TT(NLR(j)) + 2.d0*TT(NLR(j)-1)
-     2                           -TT(NLR(j)-2))  - 2.d0*NLR(j)*TTMM/Re
+                      TTMM= yPOW*RHOd*(TT(MLR(j)) - TT(MLR(j)-1))
+     1                             *CMLR(j)/Re**MLR(j)
+                      dVLRe= dVLRe+ TTMM - MLR(j)*TTM/Re
+                      d2VLRe= d2VLRe + MLR(j)*(MLR(j)+1)*TTM/Re**2
+     1                 + yPOW*RHOd**2*(-TT(MLR(j)) + 2.d0*TT(MLR(j)-1)
+     2                           -TT(MLR(j)-2))  - 2.d0*MLR(j)*TTMM/Re
                       ENDDO
                   ENDIF
 c-----------------------------------------------------------------------
@@ -864,9 +901,9 @@ c ... evaluate VLR at the actual distance ...
           IF(IDF.EQ.2) THEN
 c... if using Scoles' damping function ...
               DO  j= 1,NMLR
-                  FCT= dexp(-3.97d0*RHOd*RTP(IDAT)/NLR(j)
-     1             - 0.39d0*(RHOd*RTP(IDAT))**2/DSQRT(DFLOAT(NLR(j))))
-                  VLR= VLR+ CMLR(j)*((1.d0- FCT)/RTP(IDAT))**NLR(j)
+                  FCT= dexp(-3.97d0*RHOd*RTP(IDAT)/MLR(j)
+     1             - 0.39d0*(RHOd*RTP(IDAT))**2/DSQRT(DFLOAT(MLR(j))))
+                  VLR= VLR+ CMLR(j)*((1.d0- FCT)/RTP(IDAT))**MLR(j)
                   ENDDO
               ENDIF
           IF(IDF.EQ.1) THEN
@@ -874,12 +911,12 @@ c... if using Tang-Toennies damping function ...
               RHOdR= RHOd*RTP(IDAT)
               yPOW= DEXP(-RHOdR)
               TT(0)= yPOW
-              DO  j= 1,NLR(NMLR)
+              DO  j= 1,MLR(NMLR)
                   yPOW= yPOW*RHOdR/DFLOAT(J)
                   TT(J)= TT(J-1)+ yPOW
                   ENDDO
               DO  j=1,NMLR
-                  VLR= VLR+CMLR(j)*(1.d0-TT(NLR(j)))/RTP(IDAT)**NLR(j)
+                  VLR= VLR+CMLR(j)*(1.d0-TT(MLR(j)))/RTP(IDAT)**MLR(j)
                   ENDDO
               ENDIF
           NPOW= NS+1
@@ -962,250 +999,6 @@ cc700 FORMAT(///' Partial derivatives for',i3,' input parameters:'/
 cc   1  (1P5D16.8))
 cc702 FORMAT('  I    YC   ',5('     PD(',i1,')   ':))
 cc704 format(i3,f9.2,1P5D13.5:/(12x,5d13.5:))
-      RETURN
-      END
-c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
-
-c***********************************************************************
-      SUBROUTINE LLSQF(NDATA,NPARM,MXDATA,MXPARM,YO,YU,DYDP,YD,PV,PU,PS,
-     1                 CM,DSE)
-c**  Program for performing linear least squares fits using orthogonal 
-c  decomposition of the Design (partial derivative) matrix.
-c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c                COPYRIGHT 2000  by  Robert J. Le Roy                  +
-c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
-c    This software may not be sold or any other commercial use made    +
-c      of it without the express written permission of the author.     +
-c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c** This version of the program is designed for the data sets of modest
-c  size where it is convenient to generate and store the complete 
-c  partial derivative matrix prior to calling LLSQF.  If this is not the
-c  case, subroutine version LLSQFVL, which generates this partial 
-c  derivative array one row at a time through calls to a user-supplied
-c  subroutine, should be used.
-c
-c** On entry: NDATA  is the number of data to be fitted (.le.MXDATA)
-c             NPARM  the number of parameters to be varied (.le.MXPARM)
-c                 If NPARM.le.0 , assume  YD(i)=YO(i)  and calculate the
-c                 (RMS dimensionless deviation)=DSE  from them & YU(i)
-c             MXDATA & MXPARM are array dimension parameters (see below)
-c                 Internal array sizes currently assume  MXPARM .le. 60
-c             YO(i)  are the NDATA 'observed' data;  for iterative 
-c                  non-linear fits these are:  [Y(obs,i) - Y(trial,i)]
-c             YU(i)  are the uncertainties in these YO(i) values
-c             DYDP(i,j)  is the partial derivative array  dYO(i)/dPV(j)
-c
-c** On Exit: PV(j)  are the fitted parameter values;  for iterative
-c                  non-linear fits these are the parameter changes
-c            PU(j) are 95% confidence limit uncertainties in the PV(j)'s
-c            PS(j) are 'parameter sensitivities' for the PV(j)'s, defined
-c               such that the RMS displacement of predicted data  due to
-c               rounding off parameter-j by PS(j) is .le. DSE/10*NPARM
-c            DSE  is predicted (dimensionless) standard error of the fit
-c            YD(i) is the array of differences  [YO(i) - Ycalc(i)]
-c            CM(j,k)  is the correlation matrix obtained by normalizing
-c   variance/covariance matrix:  CM(j,k) = CM(j,k)/SQRT[CM(j,j)*CM(k,k)]
-c** The squared 95% confidence limit uncertainty in a property F({PV(j)})
-c  defined in terms of the fitted parameters {PV(j)} is (where the
-c  L.H.S. involves  [row]*[matrix]*[column]  multiplication):
-c  [D(F)]^2 = [PU(1)*dF/dPV(1), PU(2)*dF/dPV(2), ...]*[CM(j,k)]*
-c                              [PU(2)*dF/dPV(1), PU(2)*dF/dPV(2), ...]
-c** Externally dimension:  YO, YU and YD  .ge. NDATA (say as MXDATA),
-c             PV, PU  and  PS  .ge.  NPARM (say as MXPARM), 
-c             DYDP  with column length MXDATA and row length .ge. NPARM
-c             CM   as a square matrix with column & row length  MXPARM
-c  Authors: Robert J. Le Roy  &  Michael Dulick, Department of Chemistry
-c    U. of Waterloo, Waterloo, Ontario  N2L 3G1.    Version of: 07/10/00
-c***********************************************************************
-      INTEGER I,J,K,L,M,IDF,NDATA,MXDATA,NPARM,MXPARM
-      REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPARM), PU(NPARM), 
-     1   PS(NPARM), DYDP(MXDATA,NPARM), CM(MXPARM,MXPARM), DSE,
-     2   PX(60), F95(10), TFACT, S, U
-      DATA F95/12.7062D0,4.3027D0,3.1824D0,2.7764D0,2.5706D0,2.4469D0,
-     1  2.3646D0,2.3060D0,2.2622D0,2.2281D0/
-c
-      IF((NDATA.GT.MXDATA).OR.(NPARM.GT.MXPARM).OR.(NPARM.GT.60)
-     1                    .OR.(NPARM.GT.NDATA)) THEN
-c** If array dimensioning inadequate, print warning & then STOP
-          WRITE(6,601) NDATA,MXDATA,NPARM,MXPARM
-          STOP
-          ENDIF
-      IF(NPARM.LE.0) THEN
-c** If no parameters varied - simply calculate RMS deviation = DSE
-          DSE= 0.D0
-          DO  I= 1,NDATA
-              YD(I)= YO(I)
-              DSE= DSE+ (YD(I)/YU(I))**2
-              ENDDO
-          DSE= DSQRT(DSE/DFLOAT(NDATA))
-          RETURN
-          ENDIF
-c** TFACT  is 95% student t-value for (NDATA-NPARM) degrees of freedom.
-c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
-      TFACT= 0.D0
-      IF(NDATA.GT.NPARM) THEN
-          IDF= NDATA-NPARM
-          IF(IDF.GT.10) TFACT= 1.960D0*DEXP(1.265D0/DFLOAT(IDF))
-          IF(IDF.LE.10) TFACT= F95(IDF) 
-        ELSE
-          TFACT= 0.D0
-        ENDIF
-      DO  I = 1,NPARM
-          PS(I) = 0.D0
-          PU(I) = 0.D0
-          PX(I) = 0.D0
-          DO  J = 1,NPARM
-              CM(I,J) = 0.D0
-              ENDDO
-          ENDDO
-c
-c** Begin by forming the Jacobian Matrix from the input partial 
-c  derivative matrix DYDP.  For VERY large data sets, these partial 
-c  derivatives may be generated inside this loop (see version LLSQFVL).
-      DO  I = 1,NDATA
-          S = 1.D0 / YU(I)
-          U = YO(I) * S
-          DO  J = 1,NPARM
-              PV(J) = DYDP(I,J) * S
-              ENDDO
-          CALL QQROD(NPARM,MXPARM,MXPARM,CM,PV,PX,U,PS,PU)
-          ENDDO
-c
-c** Compute the inverse of  CM 
-      CM(1,1) = 1.D0 / CM(1,1)
-      DO  I = 2,NPARM
-          L = I - 1
-          DO  J = 1,L
-              S = 0.D0
-              DO  K = J,L
-                  S = S + CM(K,I) * CM(J,K)
-                  ENDDO
-              CM(J,I) = -S / CM(I,I)
-              ENDDO
-          CM(I,I) = 1.D0 / CM(I,I)
-          ENDDO
-c
-c** Solve for parameter values  PV(j)
-      DO  I = 1,NPARM
-          J = NPARM - I + 1
-          PV(J) = 0.D0
-          DO  K = J,NPARM
-              PV(J) = PV(J) + CM(J,K) * PX(K)
-              ENDDO
-          ENDDO
-c
-c** Get (upper triangular) "dispersion Matrix" [variance-covarience
-c  matrix  without the sigma^2 factor].
-      DO  I = 1,NPARM
-          DO  J = I,NPARM
-              U = 0.D0
-              DO  K = J,NPARM
-                  U = U + CM(I,K) * CM(J,K)
-                  ENDDO
-              CM(I,J) = U
-              ENDDO
-          ENDDO
-c** Generate core of Parameter Uncertainties  PU(j) and (symmetric)
-c   correlation matrix  CM
-      DO  J = 1,NPARM
-          PU(J) = DSQRT(CM(J,J))
-          DO  K= J,NPARM
-              CM(J,K)= CM(J,K)/PU(J)
-              ENDDO
-          DO  K= 1,J
-              CM(K,J)= CM(K,J)/PU(J)
-              CM(J,K)= CM(K,J)
-              ENDDO
-          PX(J)= 0.d0
-          ENDDO
-c
-c** Generate differences:   YD(i) = [YO(i) - Ycalc(i)] , standard error
-c  DSE = sigma^2,  and prepare to calculate Parameter Sensitivities PS
-      DSE= 0.D0
-      DO  I = 1,NDATA
-          S = 1.D0 / YU(I)
-          U = 0.D0
-          DO  J = 1,NPARM
-              PX(J)= PX(J)+ (DYDP(I,J)*S)**2
-              U = U + DYDP(I,J) * PV(J)
-              ENDDO
-          YD(I) = YO(I) - U
-          DSE= DSE+ (S*YD(I))**2
-          ENDDO
-      IF(NDATA.GT.NPARM) THEN
-          DSE= DSQRT(DSE/(NDATA-NPARM))
-        ELSE
-          DSE= 0.d0
-        ENDIF
-c** Use DSE to get final (95% confid. limit) parameter uncertainties PU
-c** Calculate 'parameter sensitivities', changes in PV(j) which would
-c  change predictions of input data by an RMS average of  DSE*0.1/NPARM
-      U= DSE*0.1d0/DFLOAT(NPARM)
-      S= DSE*TFACT
-      DO  J = 1,NPARM
-          PU(J)= S* PU(J)
-          PS(J)= U*DSQRT(NDATA/PX(J))
-          ENDDO
-c
-      RETURN
-  601 FORMAT(/' *** Dimensioning problems in LLSQF *** (NDATA, MXDATA, N
-     1PARM, MXPARM)  =  (',I5,4(' ,',I5),' )')
-      END
-c***********************************************************************
-	SUBROUTINE QQROD(N,NR,NC,A,R,F,B,GC,GS)
-C** Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES    
-C            EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE   
-C            J IS THE JACOBIAN IN WHICH THE FIRST N ROWS AND COLUMNS
-C            ARE TRANSFORMED TO THE UPPER TRIANGULAR MATRIX A      
-C            (J = B * A), X IS THE INDEPENDENT VARIABLE VECTOR, AND
-C            F IS THE DEPENDENT VARIABLE VECTOR. THE TRANSFORMATION
-C            IS APPLIED TO ONE ROW OF THE JACOBIAN MATRIX AT A TIME.
-C  PARAMETERS :                                                   
-C      N   -  (INTEGER) DIMENSION OF A TO BE TRANSFORMED.        
-C      NR  -  (INTEGER) ROW DIMENSION OF A DECLARED IN CALLING PROGRAM.
-C      NC  -  (INTEGER) Column DIMENSION OF F DECLARED IN CALLING PROGRAM.
-C      A   -  (REAL*8 ARRAY OF DIMENSIONS .GE. N*N) UPPER TRIANGULAR
-C             TRANSFORMATION MATRIX.                               
-C      R   -  (REAL*8 LINEAR ARRAY OF DIMENSION .GE. N) ROW OF    
-C             JACOBIAN TO BE ADDED.                             
-C      F   -  (REAL*8 LINEAR ARRAY .GE. TO THE ROW DIMENSION OF THE
-C             JACOBIAN) TRANSFORMED DEPENDENT VARIABLE MATRIX.    
-C      B   -  (REAL*8) VALUE OF F THAT CORRESPONDS TO THE ADDED  
-C             JACOBIAN ROW.                                     
-C     GC   -  (REAL*8 LINEAR ARRAY .GE. N) GIVENS COSINE TRANSFORMATIONS.
-C     GS   -  (REAL*8 LINEAR ARRAY .GE. N) GIVENS SINE TRANSFORMATIONS. 
-C--------------------------------------------------------------------
-C  AUTHOR : MICHAEL DULICK, Department of Chemistry,
-C           UNIVERSITY OF WATERLOO, WATERLOO, ONTARIO N2L 3G1
-C--------------------------------------------------------------------
-      INTEGER  I,J,K,N,NC,NR
-      REAL*8 A(NR,NC), R(N), F(NR), GC(N), GS(N), B, Z(2)
-      DO  I = 1,N
-          Z(1) = R(I)
-          J = I - 1
-          DO  K = 1,J
-              Z(2) = GC(K) * A(K,I) + GS(K) * Z(1)
-              Z(1) = GC(K) * Z(1) - GS(K) * A(K,I)
-              A(K,I) = Z(2)
-              ENDDO
-          GC(I) = 1.D0
-          GS(I) = 0.D0
-          IF((Z(1) .GT. 0.d0) .OR. (Z(1) .LT. 0.d0)) THEN
-              IF(DABS(A(I,I)) .LT. DABS(Z(1))) THEN
-                  Z(2) = A(I,I) / Z(1)
-                  GS(I) = 1.D0 / DSQRT(1.D0 + Z(2) * Z(2))
-                  GC(I) = Z(2) * GS(I)
-                ELSE
-                  Z(2) = Z(1) / A(I,I)
-                  GC(I) = 1.D0 / DSQRT(1.D0 + Z(2) * Z(2))
-                  GS(I) = Z(2) * GC(I)
-                ENDIF
-              A(I,I) = GC(I) * A(I,I) + GS(I) * Z(1)
-              Z(2) = GC(I) * F(I) + GS(I) * B
-              B = GC(I) * B - GS(I) * F(I)
-              F(I) = Z(2)
-              ENDIF
-          ENDDO
       RETURN
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
@@ -1478,7 +1271,6 @@ c  change predictions of input data by an RMS average of  DSE*0.1/NPARM
               PU(J)= S* PU(J)
               PS(J)= UU*DSQRT(NDATA/PS(J))
               ENDDO
-
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
           IF((ITER.GT.1).AND.(RMSR.GT.2.0d0*RMSRB).AND.(ISCAL.LE. 3))
      1                                                            THEN
@@ -1486,7 +1278,7 @@ c** LeRoy's Marquardt-like attempt to damp changes if RMSR increases ...
               ISCAL= ISCAL+ 1
               IF(LPRINT.GE.0) THEN
                   WRITE(6,620) ITER,RMSR,RMSR/RMSRB,ISCAL
-  620 FORMAT(' At Iteration',i3,'  RMSD='1PD8.1,'  RMSD/RMSDB=',D8.1,
+  620 FORMAT(' At Iteration',i3,'  RMSD=',1PD8.1,'  RMSD/RMSDB=',D8.1,
      1 "  Scale PC by  (1/4)**",i1)
 ccc               WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),J=1,NPTOT)
                   ENDIF
@@ -1497,7 +1289,6 @@ ccc               WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),J=1,NPTOT)
               GOTO 10
               ENDIF
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 c========End of core linear least-squares step==========================
 c ... early exit if Rounding cycle finished ... 
           IF(QUIT.GT.0) GO TO 54
@@ -1860,5 +1651,249 @@ c         PD(J)= POWER
 c  10     CONTINUE
 c     RETURN
 c     END
+c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+
+c***********************************************************************
+      SUBROUTINE LLSQF(NDATA,NPARM,MXDATA,MXPARM,YO,YU,DYDP,YD,PV,PU,PS,
+     1                 CM,DSE)
+c**  Program for performing linear least squares fits using orthogonal 
+c  decomposition of the Design (partial derivative) matrix.
+c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+c                COPYRIGHT 2000  by  Robert J. Le Roy                  +
+c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
+c    This software may not be sold or any other commercial use made    +
+c      of it without the express written permission of the author.     +
+c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+c** This version of the program is designed for the data sets of modest
+c  size where it is convenient to generate and store the complete 
+c  partial derivative matrix prior to calling LLSQF.  If this is not the
+c  case, subroutine version LLSQFVL, which generates this partial 
+c  derivative array one row at a time through calls to a user-supplied
+c  subroutine, should be used.
+c
+c** On entry: NDATA  is the number of data to be fitted (.le.MXDATA)
+c             NPARM  the number of parameters to be varied (.le.MXPARM)
+c                 If NPARM.le.0 , assume  YD(i)=YO(i)  and calculate the
+c                 (RMS dimensionless deviation)=DSE  from them & YU(i)
+c             MXDATA & MXPARM are array dimension parameters (see below)
+c                 Internal array sizes currently assume  MXPARM .le. 60
+c             YO(i)  are the NDATA 'observed' data;  for iterative 
+c                  non-linear fits these are:  [Y(obs,i) - Y(trial,i)]
+c             YU(i)  are the uncertainties in these YO(i) values
+c             DYDP(i,j)  is the partial derivative array  dYO(i)/dPV(j)
+c
+c** On Exit: PV(j)  are the fitted parameter values;  for iterative
+c                  non-linear fits these are the parameter changes
+c            PU(j) are 95% confidence limit uncertainties in the PV(j)'s
+c            PS(j) are 'parameter sensitivities' for the PV(j)'s, defined
+c               such that the RMS displacement of predicted data  due to
+c               rounding off parameter-j by PS(j) is .le. DSE/10*NPARM
+c            DSE  is predicted (dimensionless) standard error of the fit
+c            YD(i) is the array of differences  [YO(i) - Ycalc(i)]
+c            CM(j,k)  is the correlation matrix obtained by normalizing
+c   variance/covariance matrix:  CM(j,k) = CM(j,k)/SQRT[CM(j,j)*CM(k,k)]
+c** The squared 95% confidence limit uncertainty in a property F({PV(j)})
+c  defined in terms of the fitted parameters {PV(j)} is (where the
+c  L.H.S. involves  [row]*[matrix]*[column]  multiplication):
+c  [D(F)]^2 = [PU(1)*dF/dPV(1), PU(2)*dF/dPV(2), ...]*[CM(j,k)]*
+c                              [PU(2)*dF/dPV(1), PU(2)*dF/dPV(2), ...]
+c** Externally dimension:  YO, YU and YD  .ge. NDATA (say as MXDATA),
+c             PV, PU  and  PS  .ge.  NPARM (say as MXPARM), 
+c             DYDP  with column length MXDATA and row length .ge. NPARM
+c             CM   as a square matrix with column & row length  MXPARM
+c  Authors: Robert J. Le Roy  &  Michael Dulick, Department of Chemistry
+c    U. of Waterloo, Waterloo, Ontario  N2L 3G1.    Version of: 07/10/00
+c***********************************************************************
+      INTEGER I,J,K,L,M,IDF,NDATA,MXDATA,NPARM,MXPARM
+      REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPARM), PU(NPARM), 
+     1   PS(NPARM), DYDP(MXDATA,NPARM), CM(MXPARM,MXPARM), DSE,
+     2   PX(60), F95(10), TFACT, S, U
+      DATA F95/12.7062D0,4.3027D0,3.1824D0,2.7764D0,2.5706D0,2.4469D0,
+     1  2.3646D0,2.3060D0,2.2622D0,2.2281D0/
+c
+      IF((NDATA.GT.MXDATA).OR.(NPARM.GT.MXPARM).OR.(NPARM.GT.60)
+     1                    .OR.(NPARM.GT.NDATA)) THEN
+c** If array dimensioning inadequate, print warning & then STOP
+          WRITE(6,601) NDATA,MXDATA,NPARM,MXPARM
+          STOP
+          ENDIF
+      IF(NPARM.LE.0) THEN
+c** If no parameters varied - simply calculate RMS deviation = DSE
+          DSE= 0.D0
+          DO  I= 1,NDATA
+              YD(I)= YO(I)
+              DSE= DSE+ (YD(I)/YU(I))**2
+              ENDDO
+          DSE= DSQRT(DSE/DFLOAT(NDATA))
+          RETURN
+          ENDIF
+c** TFACT  is 95% student t-value for (NDATA-NPARM) degrees of freedom.
+c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
+      TFACT= 0.D0
+      IF(NDATA.GT.NPARM) THEN
+          IDF= NDATA-NPARM
+          IF(IDF.GT.10) TFACT= 1.960D0*DEXP(1.265D0/DFLOAT(IDF))
+          IF(IDF.LE.10) TFACT= F95(IDF) 
+        ELSE
+          TFACT= 0.D0
+        ENDIF
+      DO  I = 1,NPARM
+          PS(I) = 0.D0
+          PU(I) = 0.D0
+          PX(I) = 0.D0
+          DO  J = 1,NPARM
+              CM(I,J) = 0.D0
+              ENDDO
+          ENDDO
+c
+c** Begin by forming the Jacobian Matrix from the input partial 
+c  derivative matrix DYDP.  For VERY large data sets, these partial 
+c  derivatives may be generated inside this loop (see version LLSQFVL).
+      DO  I = 1,NDATA
+          S = 1.D0 / YU(I)
+          U = YO(I) * S
+          DO  J = 1,NPARM
+              PV(J) = DYDP(I,J) * S
+              ENDDO
+          CALL QQROD(NPARM,MXPARM,MXPARM,CM,PV,PX,U,PS,PU)
+          ENDDO
+c
+c** Compute the inverse of  CM 
+      CM(1,1) = 1.D0 / CM(1,1)
+      DO  I = 2,NPARM
+          L = I - 1
+          DO  J = 1,L
+              S = 0.D0
+              DO  K = J,L
+                  S = S + CM(K,I) * CM(J,K)
+                  ENDDO
+              CM(J,I) = -S / CM(I,I)
+              ENDDO
+          CM(I,I) = 1.D0 / CM(I,I)
+          ENDDO
+c
+c** Solve for parameter values  PV(j)
+      DO  I = 1,NPARM
+          J = NPARM - I + 1
+          PV(J) = 0.D0
+          DO  K = J,NPARM
+              PV(J) = PV(J) + CM(J,K) * PX(K)
+              ENDDO
+          ENDDO
+c
+c** Get (upper triangular) "dispersion Matrix" [variance-covarience
+c  matrix  without the sigma^2 factor].
+      DO  I = 1,NPARM
+          DO  J = I,NPARM
+              U = 0.D0
+              DO  K = J,NPARM
+                  U = U + CM(I,K) * CM(J,K)
+                  ENDDO
+              CM(I,J) = U
+              ENDDO
+          ENDDO
+c** Generate core of Parameter Uncertainties  PU(j) and (symmetric)
+c   correlation matrix  CM
+      DO  J = 1,NPARM
+          PU(J) = DSQRT(CM(J,J))
+          DO  K= J,NPARM
+              CM(J,K)= CM(J,K)/PU(J)
+              ENDDO
+          DO  K= 1,J
+              CM(K,J)= CM(K,J)/PU(J)
+              CM(J,K)= CM(K,J)
+              ENDDO
+          PX(J)= 0.d0
+          ENDDO
+c
+c** Generate differences:   YD(i) = [YO(i) - Ycalc(i)] , standard error
+c  DSE = sigma^2,  and prepare to calculate Parameter Sensitivities PS
+      DSE= 0.D0
+      DO  I = 1,NDATA
+          S = 1.D0 / YU(I)
+          U = 0.D0
+          DO  J = 1,NPARM
+              PX(J)= PX(J)+ (DYDP(I,J)*S)**2
+              U = U + DYDP(I,J) * PV(J)
+              ENDDO
+          YD(I) = YO(I) - U
+          DSE= DSE+ (S*YD(I))**2
+          ENDDO
+      IF(NDATA.GT.NPARM) THEN
+          DSE= DSQRT(DSE/(NDATA-NPARM))
+        ELSE
+          DSE= 0.d0
+        ENDIF
+c** Use DSE to get final (95% confid. limit) parameter uncertainties PU
+c** Calculate 'parameter sensitivities', changes in PV(j) which would
+c  change predictions of input data by an RMS average of  DSE*0.1/NPARM
+      U= DSE*0.1d0/DFLOAT(NPARM)
+      S= DSE*TFACT
+      DO  J = 1,NPARM
+          PU(J)= S* PU(J)
+          PS(J)= U*DSQRT(NDATA/PX(J))
+          ENDDO
+c
+      RETURN
+  601 FORMAT(/' *** Dimensioning problems in LLSQF *** (NDATA, MXDATA, N
+     1PARM, MXPARM)  =  (',I5,4(' ,',I5),' )')
+      END
+c***********************************************************************
+	SUBROUTINE QQROD(N,NR,NC,A,R,F,B,GC,GS)
+C** Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES    
+C            EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE   
+C            J IS THE JACOBIAN IN WHICH THE FIRST N ROWS AND COLUMNS
+C            ARE TRANSFORMED TO THE UPPER TRIANGULAR MATRIX A      
+C            (J = B * A), X IS THE INDEPENDENT VARIABLE VECTOR, AND
+C            F IS THE DEPENDENT VARIABLE VECTOR. THE TRANSFORMATION
+C            IS APPLIED TO ONE ROW OF THE JACOBIAN MATRIX AT A TIME.
+C  PARAMETERS :                                                   
+C      N   -  (INTEGER) DIMENSION OF A TO BE TRANSFORMED.        
+C      NR  -  (INTEGER) ROW DIMENSION OF A DECLARED IN CALLING PROGRAM.
+C      NC  -  (INTEGER) Column DIMENSION OF F DECLARED IN CALLING PROGRAM.
+C      A   -  (REAL*8 ARRAY OF DIMENSIONS .GE. N*N) UPPER TRIANGULAR
+C             TRANSFORMATION MATRIX.                               
+C      R   -  (REAL*8 LINEAR ARRAY OF DIMENSION .GE. N) ROW OF    
+C             JACOBIAN TO BE ADDED.                             
+C      F   -  (REAL*8 LINEAR ARRAY .GE. TO THE ROW DIMENSION OF THE
+C             JACOBIAN) TRANSFORMED DEPENDENT VARIABLE MATRIX.    
+C      B   -  (REAL*8) VALUE OF F THAT CORRESPONDS TO THE ADDED  
+C             JACOBIAN ROW.                                     
+C     GC   -  (REAL*8 LINEAR ARRAY .GE. N) GIVENS COSINE TRANSFORMATIONS.
+C     GS   -  (REAL*8 LINEAR ARRAY .GE. N) GIVENS SINE TRANSFORMATIONS. 
+C--------------------------------------------------------------------
+C  AUTHOR : MICHAEL DULICK, Department of Chemistry,
+C           UNIVERSITY OF WATERLOO, WATERLOO, ONTARIO N2L 3G1
+C--------------------------------------------------------------------
+      INTEGER  I,J,K,N,NC,NR
+      REAL*8 A(NR,NC), R(N), F(NR), GC(N), GS(N), B, Z(2)
+      DO  I = 1,N
+          Z(1) = R(I)
+          J = I - 1
+          DO  K = 1,J
+              Z(2) = GC(K) * A(K,I) + GS(K) * Z(1)
+              Z(1) = GC(K) * Z(1) - GS(K) * A(K,I)
+              A(K,I) = Z(2)
+              ENDDO
+          GC(I) = 1.D0
+          GS(I) = 0.D0
+          IF((Z(1) .GT. 0.d0) .OR. (Z(1) .LT. 0.d0)) THEN
+              IF(DABS(A(I,I)) .LT. DABS(Z(1))) THEN
+                  Z(2) = A(I,I) / Z(1)
+                  GS(I) = 1.D0 / DSQRT(1.D0 + Z(2) * Z(2))
+                  GC(I) = Z(2) * GS(I)
+                ELSE
+                  Z(2) = Z(1) / A(I,I)
+                  GC(I) = 1.D0 / DSQRT(1.D0 + Z(2) * Z(2))
+                  GS(I) = Z(2) * GC(I)
+                ENDIF
+              A(I,I) = GC(I) * A(I,I) + GS(I) * Z(1)
+              Z(2) = GC(I) * F(I) + GS(I) * B
+              B = GC(I) * B - GS(I) * F(I)
+              F(I) = Z(2)
+              ENDIF
+          ENDDO
+      RETURN
+      END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
