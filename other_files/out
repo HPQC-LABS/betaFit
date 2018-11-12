@@ -1,0 +1,304 @@
+8c8
+<       PARAMETER (MXDATA=1501, MXPARM=50, MXMLR= 8)
+---
+>       PARAMETER (MXDATA=1501, MXPARM=40, MXMLR= 8)
+12,19c12,19
+<      1  CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
+<      2  uVTP(MXDATA),betay(MXDATA),Ubetay(MXDATA),YD(MXDATA),
+<      3  ypSAP(MXPARM),xSAP(MXDATA), rKL(1:MXDATA,1:MXDATA),
+<      3  betaINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
+<      4  Rep,AREF,AREFp,RTPp, AA,BB,ULR,dULR,FCT,RAT,UMAX,XX,YY,YH,
+<      5  yp,fsw,ypRE,ReDE, ReIN,DeIN,VMINin ,ULRe,RE3,RE6,RE8,T0,T1,
+<      6  C6adj,C9adj,RTP3,RTP6,RTP8,RH,RR,RB,RBB,VV,VB,VBB, SCALC,
+<      7  DEIGM1(1,1),DEIGR(1,1),DEIGRe(1,1)
+---
+>      1 CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
+>      2 uVTP(MXDATA),betay(MXDATA),Ubetay(MXDATA),YD(MXDATA),
+>      3 ypSAP(MXPARM),xSAP(MXDATA), rKL(1:MXDATA,1:MXDATA),
+>      3 betaINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
+>      4 Rep,AREF,AREFp,AREFq,RTPp,RTPq, AA,BB,ULR,dULR,FCT,RAT,UMAX,
+>      5 XX,YY,YH,yp,yq,fsw,ypRE,ReDE, ReIN,DeIN,VMINin ,ULRe,RE3,RE6,
+>      6 RE8,T0,T1,C6adj,C9adj,RTP3,RTP6,RTP8,RH,RR,RB,RBB,VV,VB,VBB,
+>      7 SCALC
+23c23
+<       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
+---
+>       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,q,NS,NL,
+28c28
+<      1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,
+---
+>      1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,q,
+151c151
+<   601 FORMAT(' Using exponent expansion variable  y',i1,'(r)= [r^',i1,
+---
+>   601 FORMAT(' using exponent expansion variable  y_',i1,'(r)= [r^',i1,
+156,157c156,157
+<   618 FORMAT(' Use Lyon  ULR(r) with   C_0=',F10.6,'   C_6(Sigma)=',
+<      1  1PD15.7/42x,'C_6(Pi)   =',D15.7)
+---
+>   618 FORMAT(' Use Lyon 2x2 ULR(r) with   C_0=',F10.6,'   C_6(Sigma)=',
+>      1  1PD15.7/45x,'C_6(Pi)   =',D15.7)
+159,162c159
+<   698 FORMAT(' Use Lyon  ULR(r) with   C_0=',F10.6,'   C_6(Sigma)=',
+<      1  1PD15.7/42x,'C_6(Pi)   =',D15.7)
+<   699 FORMAT(42X,'C_8(Sigma)=',1PD15.7/42x,'C_8(Pi)   =',D15.7)
+<   603 FORMAT(' Use exponent expansion variable  y',i1,'(r)= [r^',i1,
+---
+>   603 FORMAT(' using exponent expansion variable  y_',i1,'(r)= [r^',i1,
+189,190c186,189
+< c** Now ... loop over different {p,NS,NL} combinations till end of data
+< c*  p  is power in expansion variable  yp=(R^p - AREF^p)/(R^p + AREF^p)
+---
+> c** Now ... loop over different {p,q,NS,NL} combinations till end of data
+> c**  p and q are powers used to define radial variable in the exponent
+> c       beta(r)= yp*betaINF + sum{beta_i*yq^i} where  
+> c       ya=(R^a - AREF^a)/(R^a + AREF^a)
+202c201
+<    10 READ(5,*, END= 999) p, NS, NL, RREF
+---
+>    10 READ(5,*, END= 999) p, q, NS, NL, RREF
+215c214
+<               IF(Asw.LE.0.d0) WRITE(6,634) 
+---
+>               IF(Asw.LE.0.d0) WRITE(6,634) p,p,q
+226c225
+<               WRITE(6,601) p,p,AREF,p,p,AREF,p
+---
+>               WRITE(6,601) q,q,AREF,q,q,AREF,q
+229c228
+<               WRITE(6,603) p,p,p,p,p
+---
+>               WRITE(6,603) q,q,q,q,q
+247a247
+>           AREFq= AREF**q
+265a266
+>               RTPq= RTP(i)**q
+266a268
+>               yq= (RTPq - AREFq)/(RTPq + AREFq)
+295,299c297,301
+< cc        write(8,702) rtp(i),yp,vtp(i),betay(i),Ubetay(i)
+< cc   1                                 ,(dydp(i,j),j=1,nbeta)
+<   700 format('  RTP     yp      VTP      beta*y      unc(beta*y) :',
+<      1  ' {dY/dp}')
+<   702 format(f6.3,f8.4,f9.2,1P2d13.5:/(14x,5d13.5))
+---
+> cc        write(8,702) rtp(i),yp,vtp(i),betay(i),Ubetay(i),
+> cc   1                                           (dydp(i,j),j=1,nphi)
+> cc700 format('  RTP     yp      VTP      beta*y      unc(beta*y) :',
+> cc   1  ' {dY/dp}')
+> cc702 format(f6.3,f8.4,f9.2,1P2d13.5:/(14x,5d13.5))
+336,344c338
+<               ENDIF
+<           IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+< c ... for Aubert-Frecon 3x3 Li2(c) {3,0,6,6,8,8} case ...
+<               CALL AF3X3(RE,CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+<      1	                                        DEIGM1,DEIGR,MXMLR)
+<               ULRe=ULR
+<               WRITE(6,698) (CmVAL(i),i=2,4)
+<               IF(NCMM.GT.4) WRITE(6,699) CmVAL(5),CmVAL(6)
+< 	      ENDIF
+---
+>             ELSE
+346d339
+<           IF((NCMM.EQ.1).OR.(MMLR(2).GT.0)) THEN
+348,349c341,343
+<               IF(p.LE.(MMLR(NCMM)-MMLR(1)))
+<      1                         WRITE(6,616) p, NCMM,MMLR(NCMM)-MMLR(1)
+---
+>               IF(p.LE.(MMLR(NCMM)-MMLR(1))) THEN
+>                   WRITE(6,616) p, NCMM,MMLR(NCMM)-MMLR(1)
+>                   ENDIF
+354c348
+<               ENDIF
+---
+>             ENDIF
+359a354
+>               RTPq= RTP(i)**q
+360a356
+>               yq= (RTPq - AREFq)/(RTPq + AREFq)
+378,384c374
+<                   ENDIF
+< c ... for Aubert-Frecon 3x3 Li2(c) {3,0,6,6,8,8} case ...
+<               IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+< 		  CALL AF3X3(RTP(i),CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+<      1                                             DEIGM1,DEIGR,MXMLR)
+<                   ENDIF
+<               IF((NCMM.EQ.1).OR.(MMLR(2).GT.0)) THEN
+---
+>                 ELSE
+428c418
+<                       yPOW= yPOW*yp
+---
+>                       yPOW= yPOW*yq
+431,435c421,425
+<       if(i.eq.1) write(8,700) 
+<               write(8,702) rtp(i),yp,vtp(i),betay(i),Ubetay(i)
+<      1                                 ,(dydp(i,j),j=1,nphi)
+< c             write(8,800) rtp(i),yp,ypRE,vlr,betay(i)
+< c 800 Format( f7.4,2f12.8,4(1Pd15.7))
+---
+> cc                if(i.eq.1) write(8,700) 
+> cc                        write(8,702) rtp(i),yp,vtp(i),betay(i),
+> cc   1                                  Ubetay(i),(dydp(i,j),j=1,nphi)
+> cc                write(8,800) rtp(i),yp,ypRE,ULR,betay(i)
+> cc800 Format( f7.4,2f12.8,4(1Pd15.7))
+638,640c628,630
+<                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+<      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+---
+>                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,NL,
+>      1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+>                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,DSE,
+643,645c633,635
+<                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+<      1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+---
+>                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,p,AREF,NS,NL,
+>      1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+>                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,p,NS,NL,DSE,
+659c649
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
+---
+>                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+661,662c651,652
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+<      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+---
+>                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+>      1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+664c654
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
+---
+>                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+666,667c656,657
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+<      1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
+---
+>                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+>      1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+687c677
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
+---
+>                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+689,690c679,680
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+<      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+---
+>                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+>      1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+692,695c682,685
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
+<      1                         NL,DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+<      1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
+---
+>                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+>      1                           NL,DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+>                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+>      1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+715c705
+<               IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+---
+>               IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,NL,DSE,
+717c707
+<               IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+---
+>               IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,DSE,
+853,857c843,844
+<   622 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,' ; NS=',i2,
+<      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
+<      2  ('   beta_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',d8.1))
+<   624 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref= Re ; NS=',i2,
+<      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
+---
+>   622 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',i1,'; Rref=',f5.2,
+>      1  ' ; NS=',i2,', NL=',I2,'}  potl:   DSE=',1Pd9.2/
+858a846,848
+>   624 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',I1,
+>      1 '; Rref= Re ; NS=',i2,', NL=',I2,'}  potl:   DSE=',1Pd9.2/
+>      2 ('   beta_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',d8.1))
+869,870c859,860
+<   634 FORMAT(' Use Huang exponent fx:  beta(R)= betaINF*y_p + (1-y_p)* S
+<      1um{beta_i*[y_p]^i}')
+---
+>   634 FORMAT(' Use Huang exponent fx:  beta(R)= betaINF*y_',i2,
+>      1 ' + (1-y_',I1,')* Sum{beta_i*[y_',i1,']^i}')
+904,905c894,895
+<       PARAMETER (MXDATA=1501, MXPARM=30, MXMLR= 8)
+<       INTEGER  j,IDAT, NPOW,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,
+---
+>       PARAMETER (MXDATA=1501, MXPARM=40, MXMLR= 8)
+>       INTEGER  i,j,IDAT, NPOW,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,
+908,911c898,901
+<      1  Rep,AREF,AREFp,ype,dype,betaINF,yp,fsw,yPOW,XP,XPW,DER,TTM,TTMM,
+<      2  DERP,SUM,DSUM,AA,BB,FCT,ULR,ULRe,ULRe,dULRe,d2ULRe,VCN,DDER,
+<      3  T0,T0P,T1,RE3,RE6,RE8,RTP3,RTP6,RTP8,dULRedRe,RDIST,C3VAL,
+<      4  C6adj,C9adj
+---
+>      1  RTPq,Rep,AREF,AREFp,AREFq,ype,dype,betaINF,yp,yq,fsw,yPOW,XP,
+>      2  XPW,DER,TTM,TTMM,DERP,SUM,DSUM,AA,BB,FCT,ULR,ULRe,dULRe,d2ULRe,
+>      3  VCN,DDER,T0,T0P,T1,RE3,RE6,RE8,RTP3,RTP6,RTP8,dULRedRe,RDIST,
+>      4  C3VAL,C6adj,C9adj
+913c903
+<       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
+---
+>       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,q,NS,NL,
+916,917c906
+<      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM), DEIGM1(1,1),
+<      2  DEIGRe(1,1),DEIGR(1,1)
+---
+>      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM)
+919c908
+<      1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,
+---
+>      1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,q,
+990a980
+>               AREFq= AREF**q
+1016,1024c1006
+<                    ENDIF
+<            IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+< c ... extension for Aubert-Frecon 3X3 Li2(c) {3,0,6,6,8,8} case ...
+<            CALL AF3X3(RE,CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+<      1           DEIGM1,DEIGR,MXMLR)
+<                  ULRe=ULR
+<                  dULRedRe= DEIGR(1,1)  	         
+<                  ENDIF
+< 
+---
+>                 ELSE
+1026d1007
+< 	    IF ((NCMM.EQ.1).OR.(MMLR(2).GT.0)) THEN
+1037a1019
+>           RTPq= RDIST**q
+1038a1021
+>           yq= (RTPq - AREFq)/(RTPq + AREFq)
+1067c1050
+<                       yPOW= yPOW*yp
+---
+>                       yPOW= yPOW*yq
+1096,1102c1079
+< c           IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+< c ... extension for Aubert-Frecon 3X3 Li2(c) {3,0,6,6,8,8} case ...
+< c           CALL AF3X3(RDIST,CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+< c     1           DEIGM1,DEIGR,MXMLR)
+< c                 ULR=ULR
+< c                 dULRdRe= DEIGR(1,1)
+< c                 ENDIF
+---
+>           IF((NCMM.LE.1).OR.(MMLR(2).GT.0)) THEN
+1104d1080
+<             IF ((NCMM.EQ.1).OR.(MMLR(2).GT.0))THEN
+1127c1103
+<                   yPOW= yPOW*yp
+---
+>                   yPOW= yPOW*yq
+1287c1263
+<        IF(PSEL.EQ.4) THEN
+---
+>       IF(PSEL.EQ.4) THEN
+1317a1294
+> c%%%%%%%
+1326a1304
+> c%%%%%%%

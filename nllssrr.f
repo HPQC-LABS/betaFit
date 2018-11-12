@@ -629,7 +629,7 @@ c  [here XX(i)] and any other parameters or variables needeed to
 c  calculate YC and the partial derivatives. 
 c=====================================================================
 c     INTEGER  I,J,NDATA,NPTOT,MXDATA,IFXP(NPTOT)
-c     PARAMETER  (MXDATA= 501)
+c     PARAMETER  (MXDATA= 1501)
 c     REAL*8  RMSR,YC,PV(NPTOT),PD(NPTOT),PS(NPTOT),POWER,XX(MXDATA)
 c     COMMON /DATABLK/XX
 c=====================================================================
