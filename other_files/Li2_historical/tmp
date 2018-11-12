@@ -1,0 +1,36 @@
+ Direct fit to  MLR{p=3, q=2; Rref= Re ; NS= 5, NL= 5}  potl:   DSE= 6.74D+03
+ *** PROBLEM *** freeing De makes DSE increase from 2.63D+03 to 1.36D+04
+ Direct fit to  MLR{p=3, q=2; Rref= Re ; NS= 6, NL= 6}  potl:   DSE= 1.36D+04
+ Direct fit to  MLR{p=3, q=2; Rref= Re ; NS= 6, NL= 6}  potl:   DSE=      NaN
+ Direct fit to  MLR{p=3, q=2; Rref= Re ; NS= 7, NL= 7}  potl:   DSE= 1.05D+03
+ *** PROBLEM *** freeing De makes DSE increase from 3.44D+03 to 3.63D+03
+ Direct fit to  MLR{p=3, q=2; Rref= Re ; NS= 8, NL= 8}  potl:   DSE= 3.63D+03
+ Direct fit to  MLR{p=3, q=2; Rref= Re ; NS= 8, NL= 8}  potl:   DSE= 9.47D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 4.00 ; NS= 5, NL= 5}  potl:   DSE= 1.04D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 4.00 ; NS= 6, NL= 6}  potl:   DSE= 3.11D+02
+ Direct fit to  MLR{p=3, q=2; Rref= 4.00 ; NS= 7, NL= 7}  potl:   DSE= 8.90D+01
+ Direct fit to  MLR{p=3, q=2; Rref= 4.00 ; NS= 8, NL= 8}  potl:   DSE= 1.61D+01
+ Direct fit to  MLR{p=3, q=2; Rref= 4.00 ; NS= 9, NL= 9}  potl:   DSE= 1.44D+00
+ Direct fit to  MLR{p=3, q=2; Rref= 4.00 ; NS=10, NL=10}  potl:   DSE= 6.07D-01
+ Direct fit to  MLR{p=3, q=2; Rref= 4.30 ; NS= 5, NL= 5}  potl:   DSE= 1.53D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 4.30 ; NS= 6, NL= 6}  potl:   DSE= 5.26D+02
+ Direct fit to  MLR{p=3, q=2; Rref= 4.30 ; NS= 7, NL= 7}  potl:   DSE= 1.68D+02
+ Direct fit to  MLR{p=3, q=2; Rref= 4.30 ; NS= 8, NL= 8}  potl:   DSE= 3.88D+01
+ Direct fit to  MLR{p=3, q=2; Rref= 4.30 ; NS= 9, NL= 9}  potl:   DSE= 5.52D+00
+ Direct fit to  MLR{p=3, q=2; Rref= 4.30 ; NS=10, NL=10}  potl:   DSE= 1.08D+00
+ Direct fit to  MLR{p=3, q=2; Rref= 4.50 ; NS= 5, NL= 5}  potl:   DSE= 1.91D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 4.50 ; NS= 6, NL= 6}  potl:   DSE= 7.10D+02
+ Direct fit to  MLR{p=3, q=2; Rref= 4.50 ; NS= 7, NL= 7}  potl:   DSE= 2.45D+02
+ Direct fit to  MLR{p=3, q=2; Rref= 4.50 ; NS= 8, NL= 8}  potl:   DSE= 6.29D+01
+ Direct fit to  MLR{p=3, q=2; Rref= 4.50 ; NS= 9, NL= 9}  potl:   DSE= 1.10D+01
+ Direct fit to  MLR{p=3, q=2; Rref= 4.50 ; NS=10, NL=10}  potl:   DSE= 1.92D+00
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS= 5, NL= 5}  potl:   DSE=      NaN
+ *** PROBLEM *** freeing De makes DSE increase from 1.31D+03 to 2.76D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS= 6, NL= 6}  potl:   DSE= 2.76D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS= 6, NL= 6}  potl:   DSE= 1.70D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS= 7, NL= 7}  potl:   DSE= 5.33D+02
+ *** PROBLEM *** freeing De makes DSE increase from 1.18D+03 to 1.33D+04
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS= 8, NL= 8}  potl:   DSE= 1.33D+04
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS= 8, NL= 8}  potl:   DSE= 6.00D+03
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS= 9, NL= 9}  potl:   DSE= 4.34D+01
+ Direct fit to  MLR{p=3, q=2; Rref= 5.00 ; NS=10, NL=10}  potl:   DSE= 8.08D+00

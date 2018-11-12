@@ -1,0 +1,34 @@
+ Direct fit to  MLR{p=3; Rref= Re ; NS= 1, NL= 1}  potential:   DSE= 3.07D+00
+ Direct fit to  MLR{p=3; Rref= Re ; NS= 2, NL= 2}  potential:   DSE= 1.19D+00
+ Direct fit to  MLR{p=3; Rref= Re ; NS= 3, NL= 3}  potential:   DSE= 2.29D-01
+ Direct fit to  MLR{p=3; Rref= Re ; NS= 4, NL= 4}  potential:   DSE= 4.87D-02
+ Direct fit to  MLR{p=3; Rref= Re ; NS= 5, NL= 5}  potential:   DSE= 9.92D-03
+ Direct fit to  MLR{p=3; Rref= Re ; NS= 6, NL= 6}  potential:   DSE= 2.15D-03
+ Direct fit to  MLR{p=3; Rref= 5.00 ; NS= 1, NL= 1}  potential:   DSE= 2.38D+00
+ Direct fit to  MLR{p=3; Rref= 5.00 ; NS= 2, NL= 2}  potential:   DSE= 6.43D-01
+ Direct fit to  MLR{p=3; Rref= 5.00 ; NS= 3, NL= 3}  potential:   DSE= 9.05D-02
+ Direct fit to  MLR{p=3; Rref= 5.00 ; NS= 4, NL= 4}  potential:   DSE= 1.30D-02
+ Direct fit to  MLR{p=3; Rref= 5.00 ; NS= 5, NL= 5}  potential:   DSE= 3.33D-03
+ Direct fit to  MLR{p=3; Rref= 5.00 ; NS= 6, NL= 6}  potential:   DSE= 2.68D+00
+ Direct fit to  MLR{p=3; Rref= 6.00 ; NS= 1, NL= 1}  potential:   DSE= 3.73D+00
+ Direct fit to  MLR{p=3; Rref= 6.00 ; NS= 2, NL= 2}  potential:   DSE= 1.55D+00
+ Direct fit to  MLR{p=3; Rref= 6.00 ; NS= 3, NL= 3}  potential:   DSE= 3.43D-01
+ Direct fit to  MLR{p=3; Rref= 6.00 ; NS= 4, NL= 4}  potential:   DSE= 9.44D-02
+ Direct fit to  MLR{p=3; Rref= 6.00 ; NS= 5, NL= 5}  potential:   DSE= 2.03D-02
+ Direct fit to  MLR{p=3; Rref= 6.00 ; NS= 6, NL= 6}  potential:   DSE= 5.01D-03
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 1, NL= 1}  potential:   DSE= 9.40D+00
+ *** PROBLEM *** freeing De makes DSE increase from 2.87D+00 to 6.43D+00
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 2, NL= 2}  potential:   DSE= 6.43D+00
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 2, NL= 2}  potential:   DSE= 8.49D+00
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 3, NL= 3}  potential:   DSE= 7.29D-01
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 4, NL= 4}  potential:   DSE= 7.53D+00
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 5, NL= 5}  potential:   DSE= 2.74D+00
+ *** PROBLEM *** freeing De makes DSE increase from 2.92D-02 to 1.44D+00
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 6, NL= 6}  potential:   DSE= 1.44D+00
+ Direct fit to  MLR{p=3; Rref= 7.00 ; NS= 6, NL= 6}  potential:   DSE= 1.24D+00
+ Direct fit to  MLR{p=4; Rref= 7.00 ; NS= 1, NL= 1}  potential:   DSE=      NaN
+ Direct fit to  MLR{p=4; Rref= 7.00 ; NS= 2, NL= 2}  potential:   DSE=      NaN
+ Direct fit to  MLR{p=4; Rref= 7.00 ; NS= 3, NL= 3}  potential:   DSE= 2.84D+00
+ Direct fit to  MLR{p=4; Rref= 7.00 ; NS= 4, NL= 4}  potential:   DSE= 1.15D+01
+ Direct fit to  MLR{p=4; Rref= 7.00 ; NS= 5, NL= 5}  potential:   DSE= 6.79D-01
+ Direct fit to  MLR{p=4; Rref= 7.00 ; NS= 6, NL= 6}  potential:   DSE= 1.25D+11
