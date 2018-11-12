@@ -1,0 +1,1173 @@
+2c2
+< c***********  Program  betaFIT_2.0  dated  19 March 2009  **************
+---
+> c************  Program  PHIFIT_1.2  dated  25 April 2007  **************
+4,5c4,7
+< c* Program to fit NTP read-in potential fx. values {RTP(i),VTP(i)} 
+< c  (with or without individual weights) to a chosen analytic form.
+---
+> c* Program to fit NTP read-in potential fx. values {RTP(i),VTP(i)} to
+> c  a chosen analytic form, to determine realistic initial estimates of 
+> c  exponent expansion coefficients  phi_i  , for other purposes.
+> c** See  http://leroy.uwaterloo.ca/programs/   for further documentation
+8,19c10,19
+<       PARAMETER (MXDATA=1501, MXPARM=40, MXMLR= 8)
+<       INTEGER I,J,INFL,ITER,IROUND,ROBUST,LPRINT,IWR,M,NPARM,NTP,
+<      1  NLIN,IFXP(MXPARM)
+<       REAL*8 BETA(0:MXPARM),PV(MXPARM),PU(MXPARM),PS(MXPARM),
+<      1 CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
+<      2 uVTP(MXDATA),betay(MXDATA),Ubetay(MXDATA),YD(MXDATA),
+<      3 ypSAP(MXPARM),xSAP(MXDATA), rKL(1:MXDATA,1:MXDATA),
+<      3 betaINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
+<      4 Rep,AREF,AREFp,AREFq,RTPp,RTPq, AA,BB,ULR,dULR,FCT,RAT,UMAX,
+<      5 XX,YY,YH,yp,yq,ypRE,ReDE, ReIN,DeIN,VMINin ,ULRe,RE3,RE6,
+<      6 RE8,T0,T1,C6adj,C9adj,RTP3,RTP6,RTP8,RH,RR,RB,RBB,VV,VB,VBB,
+<      7 SCALC
+---
+>       PARAMETER (MXDATA=1501, MXPARM=30, MXMLR= 8)
+>       INTEGER I,J,INFL,ITER,IROUND,ROBUST,LPRINT,IWR,NPARM,NTP,
+>      1  IFXP(MXPARM)
+>       REAL*8 PHI(0:MXPARM),PV(MXPARM),PU(MXPARM),PS(MXPARM),
+>      1  CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
+>      2  uVTP(MXDATA),phiy(MXDATA),Uphiy(MXDATA),YD(MXDATA),
+>      3  phiINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
+>      4  Rep,AREF,AREFp,RTPp, AA,BB,VLR,dVLR,FCT,RAT,UMAX,
+>      5  yp,fsw,ypRE,ReDE, ReIN,DeIN,VMINin ,VLRe,RE3,T1,RTP3,
+>      6  RH,RR,RB,RBB,VV,VB,VBB
+23,28c23,29
+<       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,q,NS,NL,
+<      1                                                        NPHI,SAP
+<       REAL*8 Re,De,VMIN,RREF,M2,as,bs,RHOd,
+<      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM)
+<       COMMON /DATABLK/Re,De,VMIN,RREF,M2,as,bs,RHOd,CmVAL,RTP,SAS,PSEL,
+<      1          IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,q,NS,NL,NPHI,SAP
+---
+>       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
+>      1                                                            NPHI
+>       REAL*8 Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,RHOd,
+>      1  CmVAL(MXMLR),RTP(MXDATA)
+>       COMMON /DATABLK/Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,
+>      1  RHOd,CmVAL,RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,NS,NL,
+>      2                                                            NPHI
+37,38c38
+< c     (plausibly ca. 0.1 cm-1 for RKR).  To weight each point separately
+< c     set  UNC < 0.0  and read in a separate uncertainty for each point
+---
+> c     (plausibly ca. 0.1 cm-1 for RKR).
+72,77c72,75
+< c   with     beta(r)= y_{p} beta_inf + [1 - y_{p}] Sum{ beta_i y{_q}q^i }
+< c** SAP is an integer: > 0  to use Pashov natural spline in MLR exponent
+< c                    : .le. 0  for normal constrained polynomial exponent
+< c*  For an MLR potential with  SAP > 0,  Rsap  is a negative{!} number
+< c      (0 .le. Rsap < 1) which specifies the lower bound on the yp values 
+< c      selected to define the MLR exponent spline.  
+---
+> c** To use the switching function  fsw(r)= 1/[exp{Asw*(r-Rsw)} + 1]  form
+> c   of exponent coefft  phi(y)= [1-fsw] phi_inf + fsw \sum {phi_i y^i} 
+> c   read positive values of Asw and Rsw; otherwise, set them .LE. 0 and
+> c        phi(r)= yp phi_inf + [1 - yp] Sum{ phi_i yp^i }
+79,82c77,79
+< c** For special Aubert-Frecon case,  NCMM= 4,  MMLR= {3,0,6,6} or 
+< c  {3,0,6,6,8,8} and coefficients are: CmVAL(1)= C3(sig), CmVAL(2)= ASO,
+< c  CmVAL(3)= C6(Sig) CmVAL(4)= C6(pi) // oa, for NCMM= 6  with added 
+< c  coefficients CmVAL(5)= C8(sig) & CmVAL(6)= C8(pi)
+---
+> c** For special Aubert-Frecon case,  NCMM= 4,  MMLR= {3,0,6,6} and the 
+> c  coefficients are:  CmVAL(1)= M^2, CmVAL(2)= ASO, CmVAL(3)= R10, and
+> c  CmVAL(4)= R12
+85c82
+<           READ(5,*) NCMM, SAP, Rsap
+---
+>           READ(5,*) NCMM, Asw, Rsw
+98c95
+< c Also ...  BETA(0) is the initial trial value of  \beta_0  used to
+---
+> c Also ...  PHI(0) is the initial trial value of  \phi_0  used to
+100,101c97,98
+< c  * If the read-in  BETA(0) \leq 0.0 , the program uses a preliminary 
+< c    EMO_{p} fit to generate an estimate of  BETA(0); this usually works
+---
+> c  * If the read-in  PHI(0) \leq 0.0 , the program uses a preliminary 
+> c    EMO_{p} fit to generate an estimate of  PHI(0); this usually works
+107c104
+<           READ(5,*) NCMM, RHOd, IDF, BETA(0)
+---
+>           READ(5,*) NCMM, RHOd, IDF, PHI(0)
+110c107
+<           BETA(0)= 1.d0
+---
+>           PHI(0)= 1.d0
+119,120c116
+<       IF(UNC.GT.0.d0) READ(5,*) (RTP(i), VTP(i),i= 1,NTP)
+<       IF(UNC.LE.0.d0) READ(5,*) (RTP(i), VTP(i),uVTP(i),i= 1,NTP)
+---
+>       READ(5,*) (RTP(i), VTP(i),i= 1,NTP)
+127c123
+<           IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
+---
+>           IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+129,130c125,129
+<               WRITE(6,618) CmVAL(2),CmVAL(3),CmVAL(4)
+<               IF(NCMM.GT.4) WRITE(6,617) CmVAL(5),CmVAL(6)
+---
+>               WRITE(6,618)
+>               M2= CmVAL(1)
+>               ASO= CmVAL(2)
+>               R01= CmVAL(3)
+>               R12= CmVAL(4)
+139,146c138
+<       IF(UNC.GT.0.d0) THEN
+<           WRITE(6,606) NTP,VMIN,UNC,(RTP(i),VTP(i),i= 1,NTP)
+<           DO  i= 1,NTP
+<               uVTP(i)= UNC
+<               ENDDO
+<         ELSE
+<           WRITE(6,609) NTP,VMIN,(RTP(i),VTP(i),uVTP(i),i= 1,NTP)
+<         ENDIF
+---
+>       WRITE(6,606) NTP,VMIN,UNC,(RTP(i),VTP(i),i= 1,NTP)
+148c140
+<       IF((PSEL.EQ.2).AND.(NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
+---
+>       IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+150c142
+<               VTP(I)= VTP(I) - 0.5d0*CmVAL(2)
+---
+>               VTP(I)= VTP(I) - 0.5d0*ASO
+152a145,146
+>       IF((PSEL.EQ.2).AND.(NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+>           ENDIF
+156,159c150,153
+<   601 FORMAT(' using exponent expansion variable  y_',i1,'(r)= [r^',i1,
+<      1 ' -',f8.4,'^',i1,']/[r^',i1,' +',f8.4,'^',i1,']' )
+<   602 FORMAT(' Fit an ',A4,'p  potential function to the input points'/
+<      1  1x,24('==')/' Start with   Re=',f11.8,'   De=',f11.4,'    C',
+---
+>   601 FORMAT(' Using exponent expansion variable  yp(r)= [r^p -',f6.2,
+>      `  '^p]/[r^p +',f6.2,'^p]' )
+>   602 FORMAT(' Determine ',A4,'p  exponent expansion coefficients'/1
+>      1  x,24('==')/' Start with   Re=',f11.8,'   De=',f11.4,'    C',
+161,167c155,158
+<   618 FORMAT(' Use Lyon 2x2 ULR(r) with   C_0=',F10.6,'   C_6(Sigma)=',
+<      1  1PD15.7/45x,'C_6(Pi)   =',D15.7)
+<   617 FORMAT(42x,'C_8(Sigma)=',1PD15.7/42x,'C_8(Pi)   =',D15.7)
+<   603 FORMAT(' using exponent expansion variable  y_',i1,'(r)= [r^',i1,
+<      1 ' - Re^',i1,']/[r^',i1,' + Re^',i1,']' )
+<   652 FORMAT( '   & define beta(y(r)) as a natural spline through points
+<      1 at the',i4,'  yp values:'/(2x,7F11.7))
+---
+>   618 FORMAT(4x,'Use Lyon  uLR(r) with   C_0= ASO   C_6(1)= R01',
+>      1  '   C_6(2)= R12')
+>   603 FORMAT(' Use exponent expansion variable  yp(r)= [r^p - Re^p]/[r^p
+>      1 + Re^p]' )
+184,186d174
+<   609 FORMAT(/' Fit to',I5,' input turning points with initial energy mi
+<      1nimum   VMIN=',f11.4/1x,32('--')/2(5x,'RTP',8x,'VTP',6x,'unc',4x)/
+<      2  1x,32('--')/(2(0PF10.5,F12.4,1PD10.2)))
+194,203c182,185
+< c** Now ... loop over different {p,q,NS,NL} combinations till end of data
+< c**  p and q are powers used to define radial variable in the exponent
+< c       beta(r)= yp*betaINF + sum{beta_i*yq^i} where  
+< c       ya=(R^a - AREF^a)/(R^a + AREF^a)
+< c** Read powers NS used in  \beta(y)  expansion for  r > Re  and 
+< c               NL used in  \beta(y)  expansion for  r = Re  or  > Re 
+< c** For an MLR potential with  SAP > 0,  (NS+NL+1) is the number of yp
+< c      values to be used to define the exponent spline used for beta(y):
+< c   NS specifies the number of (equally spaced) yp values for  yp < 0
+< c   NL specifies the number of yp values from  yp= 0  to  yp= 1
+---
+> c** Now ... loop over different {p,NS,NL} combinations till end of data
+> c*  p  is power in expansion variable  yp=(R^p - AREF^p)/(R^p + AREF^p)
+> c** Read powers NS used in  \phi(y)  expansion for  r > Re  and 
+> c               NL used in  \phi(y)  expansion for  r = Re  or  > Re 
+209c191
+<    10 READ(5,*, END= 999) p, q, NS, NL, RREF
+---
+>    10 READ(5,*, END= 999) p, NS, NL, RREF
+214,215c196
+<       IF((p.LE.0).OR.(NS.LT.0).OR.(NL.LT.0)) GOTO 999
+<       NPHI= MAX(NS,NL)+ 1
+---
+>       IF((p.LE.0).OR.(NS.LE.0).OR.(NL.LE.0)) GOTO 999
+219,220c200,201
+<           IF(SAP.GT.0) WRITE(6,650) NS,NL
+<           IF(SAP.LE.0) WRITE(6,634) p,p,q
+---
+>           IF(Asw.GT.0.d0) WRITE(6,632) Asw, Rsw
+>           IF(Asw.LE.0.d0) WRITE(6,634) 
+230,231c211,213
+<               WRITE(6,601) q,q,AREF,q,q,AREF,q
+<             ELSE
+---
+>               WRITE(6,601) AREF,AREF
+>               ENDIF
+>           IF(RREF.LE.0.d0) THEN
+233,249c215
+<               WRITE(6,603) q,q,q,q,q
+<             ENDIF
+<           IF((PSEL.EQ.2).AND.(SAP.GT.0)) THEN
+<               YH= -Rsap/NS
+<               ypSAP(1)= Rsap
+<               DO  I= 2,NS
+<                   ypSAP(I)= ypSAP(I-1) + YH
+<                   ENDDO
+<               NPHI= NS+ 1
+<               ypSAP(NPHI)= 0.d0
+<               YH= 1.d0/NL
+<               DO  I= 1,NL-1
+<                   ypSAP(NPHI+I)= ypSAP(NPHI+I-1) + YH
+<                   ENDDO
+<               NPHI= NPHI+ NL
+<               ypSAP(NPHI)= 1.d0
+<               WRITE(6,652) NPHI,(ypSAP(i), i= 1,NPHI)
+---
+>               WRITE(6,603)
+252d217
+<           AREFq= AREF**q
+253a219
+>       NPHI= MAX(NS,NL)+ 1
+266c232
+<       IF((PSEL.EQ.1).OR.(PSEL.EQ.3).AND.(beta(0).le.0)) THEN
+---
+>       IF((PSEL.EQ.1).OR.(PSEL.EQ.3).AND.(phi(0).le.0)) THEN
+271d236
+<               RTPq= RTP(i)**q
+273d237
+<               yq= (RTPq - AREFq)/(RTPq + AREFq)
+275,278c239,242
+<                   betay(i)= - DLOG(1.d0 - DSQRT((VTP(i)-VMIN)/De))
+<                   IF(VTP(i).GT.uVTP(i)) THEN
+<                       Ubetay(i)= 0.5d0*uVTP(i)/(DSQRT((VTP(i)-VMIN)*De)
+<      1                                                - (VTP(i)-VMIN))
+---
+>                   phiy(i)= - DLOG(1.d0 - DSQRT((VTP(i)-VMIN)/De))
+>                   IF(VTP(i).GT.UNC) THEN
+>                       Uphiy(i)= 0.5d0*UNC/(DSQRT((VTP(i)-VMIN)*De) - 
+>      1                                                  (VTP(i)-VMIN))
+280c244
+<                       Ubetay(i)= DSQRT(uVTP(i)/De)
+---
+>                       Uphiy(i)= DSQRT(UNC/De)
+283,286c247,250
+<                   betay(i)= - DLOG(1.d0 + DSQRT((VTP(i)-VMIN)/De))
+<                   IF(VTP(i).GT.uVTP(i)) THEN
+<                       Ubetay(i)= 0.5d0*uVTP(i)/(DSQRT((VTP(i)-VMIN)*De)
+<      1                                                + (VTP(i)-VMIN))
+---
+>                   phiy(i)= - DLOG(1.d0 + DSQRT((VTP(i)-VMIN)/De))
+>                   IF(VTP(i).GT.UNC) THEN
+>                       Uphiy(i)= 0.5d0*UNC/(DSQRT((VTP(i)-VMIN)*De) +
+>      1                                                  (VTP(i)-VMIN))
+288c252
+<                       Ubetay(i)= DSQRT(uVTP(i)/De)
+---
+>                       Uphiy(i)= DSQRT(UNC/De)
+290a255
+>               uVTP(i)= UNC
+301,303c266,268
+< cc        write(8,702) rtp(i),yp,vtp(i),betay(i),Ubetay(i),
+< cc   1                                           (dydp(i,j),j=1,nphi)
+< cc700 format('  RTP     yp      VTP      beta*y      unc(beta*y) :',
+---
+> cc        write(8,702) rtp(i),yp,vtp(i),phiy(i),Uphiy(i)
+> cc   1                                 ,(dydp(i,j),j=1,nphi)
+> cc700 format('  RTP     yp      VTP       phi*y      unc(phi*y) :',
+309c274
+<           CALL LLSQF(NTP,NPARM,MXDATA,MXPARM,betay,Ubetay,DYDP,YD,PV,
+---
+>           CALL LLSQF(NTP,NPARM,MXDATA,MXPARM,phiy,Uphiy,DYDP,YD,PV,
+312c277
+<      1                        ('beta',j-1,PV(j),PU(j),PS(j),j= 1,NPARM)
+---
+>      1                        ('phi',j-1,PV(j),PU(j),PS(j),j= 1,NPARM)
+322,341c287,293
+<           IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
+< c** Aubert-Frecon based ULR(r)
+<               RE3= 1.d0/Re**3
+<               RE6= RE3*RE3
+<               C6adj= CmVAL(3) + 0.25D0*CmVAL(1)**2/De
+<               C9adj= 0.5d0*CmVAL(1)*C6adj/De
+<               T1= (0.5d0*CmVAL(1)+ (C6adj-CmVAL(4))*RE3)*RE3/3.d0
+<               IF(NCMM.GT.4) THEN
+< c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
+<                   RE8= RE6/Re**2
+<                   T1= T1+ (CmVAL(5)- CmVAL(6))*RE8/3.d0
+<                   ENDIF
+<               T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
+<               ULRe= 0.5d0*( -CmVAL(2)+ RE3*(1.5d0*CmVAL(1) 
+<      1           + RE3*(C6adj + CmVAL(4)))) + 0.5d0*T0 + C9adj*RE6*RE3
+<               WRITE(6,618) (CmVAL(i), i=2,4)
+<               IF(NCMM.GT.4) THEN
+<                   ULRe= ULRe+ 0.5d0*(CmVAL(5)+ CmVAL(6))*RE8
+<                   WRITE(6,617) CmVAL(5),CmVAL(6)
+<                   ENDIF
+---
+>           IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+> c** Aubert-Frecon based VLR(r)
+>               RE3= Re**3
+>               T1= M2/(9.d0*Re3) + (5.d0*R01 + R12)/(45.d0*RE3**2)
+>               VLRe= 0.5d0*(M2/RE3 - ASO) + (5.d0*R01 + 8.2d0*R12)
+>      1    /(18.d0*RE3**2) + 0.5d0*DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+>               WRITE(6,618) ASO,R01,R12
+348c300
+<               ULRe= 0.d0
+---
+>               VLRe= 0.d0
+350c302
+<                   ULRe= ULRe + CmVAL(i)/Re**MMLR(i)
+---
+>                   VLRe= VLRe + CmVAL(i)/Re**MMLR(i)
+353,354c305,306
+<           betaINF= DLOG(2.d0*De/ULRe)
+<           WRITE(6,619) betaINF
+---
+>           phiINF= DLOG(2.d0*De/VLRe)
+>           WRITE(6,619) phiINF
+358d309
+<               RTPq= RTP(i)**q
+360d310
+<               yq= (RTPq - AREFq)/(RTPq + AREFq)
+362,363c312
+<               xSAP(i)= ypRE
+<               IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
+---
+>               IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+365,377c314,317
+<                   RTP3= 1.d0/RTP(i)**3
+<                   RTP6= RTP3*RTP3
+<                   T1= (0.5d0*CmVAL(1)+ RTP3*(C6adj- CmVAL(4)))*RTP3/3.d0
+<                   IF(NCMM.GT.4) THEN
+< c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
+<                       RTP8= RTP6/RTP(i)**2
+<                       T1= T1+ (CmVAL(5)- CmVAL(6))*RE8/3.d0
+<                       ENDIF
+<                   T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
+<                   ULR= 0.5d0*( -CmVAL(2) + RTP3*(1.5d0*CmVAL(1)
+<      1                       + RTP3*(CmVAL(3) + CmVAL(4)))) + 0.5d0*T0
+<      2                                               + C9adj*RTP3*RTP6
+<                   IF(NCMM.GT.4) ULR= ULR+ 0.5d0*(CmVAL(5)+CmVAL(6))*RTP8
+---
+>                   RTP3= RTP(i)**3
+>                   T1= M2/(9.d0*RTP3)+ (5.d0*R01+R12)/(45.d0*RTP3**2)
+>                   VLR= 0.5d0*(M2/RTP3 - ASO) + (5.d0*R01+ 8.2d0*R12)
+>      1   /(18.d0*RTP3**2) + 0.5d0*DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+380c320
+<                   ULR= 0.d0
+---
+>                   VLR= 0.d0
+382c322
+<                       ULR= ULR+ CmVAL(j)/RTP(i)**MMLR(j)
+---
+>                       VLR= VLR+ CmVAL(j)/RTP(i)**MMLR(j)
+386,389c326,329
+<                   betay(i)= - DLOG((1.d0 - DSQRT((VTP(i)-VMIN)/De))
+<      1                                                      *ULRe/ULR)
+<                   IF((VTP(i)-VMIN).GT.uVTP(i)) THEN
+<                       Ubetay(i)= 0.5d0*uVTP(i)
+---
+>                   phiy(i)= - DLOG((1.d0 - DSQRT((VTP(i)-VMIN)/De))
+>      1                                                      *VLRe/VLR)
+>                   IF((VTP(i)-VMIN).GT.UNC) THEN
+>                       Uphiy(i)= 0.5d0*UNC
+392c332
+<                       Ubetay(i)= DSQRT(uVTP(i)/De)
+---
+>                       Uphiy(i)= DSQRT(UNC/De)
+395,398c335,338
+<                   betay(i)= - DLOG((1.d0 + DSQRT((VTP(i)-VMIN)/De))
+<      1                                                      *ULRe/ULR)
+<                   IF((VTP(i)-VMIN).GT.uVTP(i)) THEN
+<                       Ubetay(i)= 0.5d0*uVTP(i)
+---
+>                   phiy(i)= - DLOG((1.d0 + DSQRT((VTP(i)-VMIN)/De))
+>      1                                                      *VLRe/VLR)
+>                   IF((VTP(i)-VMIN).GT.UNC) THEN
+>                       Uphiy(i)= 0.5d0*UNC
+401c341
+<                       Ubetay(i)= DSQRT(uVTP(i)/De)
+---
+>                       Uphiy(i)= DSQRT(UNC/De)
+404,405c344,345
+<               IF(SAP.LE.0) THEN
+< c** Subtract the \beta_\infty term to yield polynomial for fitting
+---
+> c** Subtract the \phi_\infty term to yield polynomial for fitting
+>               IF(Asw.LE.0.d0) THEN
+407c347
+<                   betay(i)= betay(i)- betaINF*yp*ypRE
+---
+>                   phiy(i)= phiy(i)- phiINF*yp*ypRE
+408a349,355
+>                 ELSE
+> c... For Photos' origonal MLJ exponent switching function
+>                   fsw= 1.d0/(DEXP(Asw*(RTP(i)- Rsw)) + 1.d0)
+>                   phiy(i)= phiy(i)- phiINF*ypRE*(1.d0 - fsw)
+>                   yPOW= ypRE*fsw
+>                   ENDIF
+>               uVTP(i)= UNC
+410,415c357,362
+<                   DO  j= 1, NPHI
+<                       DYDP(i,j)= yPOW
+<                       IF((RTP(i).GT.Re).AND.(j.GT.NL+1)) DYDP(i,j)= 0.d0
+<                       IF((RTP(i).LE.Re).AND.(j.GT.NS+1)) DYDP(i,j)= 0.d0
+<                       yPOW= yPOW*yq
+<                       ENDDO
+---
+>               DO  j= 1, NPHI
+>                   DYDP(i,j)= yPOW
+>                   IF((RTP(i).GT.Re).AND.(j.GT.NL+1)) DYDP(i,j)= 0.d0
+>                   IF((RTP(i).LE.Re).AND.(j.GT.NS+1)) DYDP(i,j)= 0.d0
+>                   yPOW= yPOW*yp
+>                   ENDDO
+417,421c364,368
+< cc                if(i.eq.1) write(8,700) 
+< cc                        write(8,702) rtp(i),yp,vtp(i),betay(i),
+< cc   1                                  Ubetay(i),(dydp(i,j),j=1,nphi)
+< cc                write(8,800) rtp(i),yp,ypRE,ULR,betay(i)
+< cc800 Format( f7.4,2f12.8,4(1Pd15.7))
+---
+> cc    if(i.eq.1) write(8,700) 
+> cc            write(8,702) rtp(i),yp,vtp(i),phiy(i),Uphiy(i)
+> cc   1                                 ,(dydp(i,j),j=1,nphi)
+> c             write(8,800) rtp(i),yp,ypRE,vlr,phiy(i)
+> c 800 Format( f7.4,2f12.8,4(1Pd15.7))
+423,427d369
+<                   ENDIF
+< 
+< cc            write(6,800) rtp(i),yp,ypRE,vlr,betay(i), betay(i)/ypRE
+< cc800 Format( f7.4,2f12.8,5(1Pd15.7))
+< 
+429,430c371
+<           IF(SAP.LE.0) THEN
+<               CALL LLSQF(NTP,NPHI,MXDATA,MXPARM,betay,Ubetay,DYDP,YD,PV,
+---
+>           CALL LLSQF(NTP,NPHI,MXDATA,MXPARM,phiy,Uphiy,DYDP,YD,PV,
+432,466c373,374
+<               IF(IWR.GT.0) WRITE(6,620) NNAME,p,NS,NL,DSE,
+<      1                        ('beta',j-1,PV(j),PU(j),PS(j),j= 1,NPHI)
+<               ENDIF
+<           IF(SAP.GT.0) THEN
+< c** For Pashov exponent spline, use spline through linearized input 
+< c  exponent values to define spline point \beta(i) values !
+<               xSAP(NTP+1)= 1.d0
+<               betay(NTP+1)= betaINF
+<               CALL Lkoef(NTP+1,xSAP,rKL,MXDATA)
+<               DO  I= 1,NPHI
+<                    XX= ypSAP(I)
+< c... Now, use a spline through the exponent values defined by the input 
+< c    points to generate values of that exponent at the desired 
+< c    spline-definition points
+<                    PV(I)= 0.d0
+<                    DO  m= 1,NTP+1
+<                        PV(I)= PV(I) + 
+<      1              Scalc(XX,m,NTP+1,xSAP,rKL,MXDATA)*betay(m)/xSAP(m)
+<                        ENDDO
+<                    ENDDO
+<               NLIN= (NPHI+1)/2
+<               IF(IWR.GT.0) WRITE(6,653) NNAME,p,
+<      1                        ((ypSAP(I),PV(I),I= J,NPHI,NLIN),J=1,NLIN)
+<   653 FORMAT(/' Linearized ',A4,'{p=',i1,'}-SAP treatment yields:'/
+<      1  (2('    ypSAP=',f10.6,'  beta(y)='f10.5) ))
+< c
+< c... Finally, create the fixed array of S(m,x) to deine the exponent
+< c   and its partial derivatives in subsequent fits ...
+<               CALL Lkoef(NPHI,ypSAP,rKL,MXDATA)
+<               DO  I= 1,NTP
+<                  DO  m= 1,NPHI
+<                      SAS(I,m)= Scalc(xSAP(I),m,NPHI,ypSAP,rKL,MXDATA)
+<                      ENDDO
+<                  ENDDO
+<               ENDIF
+---
+>           IF(IWR.GT.0) WRITE(6,620) NNAME,p,NS,NL,DSE,
+>      1                        ('phi',j-1,PV(j),PU(j),PS(j),j= 1,NPHI)
+473,474c381,382
+< c ... NOTE need iteration to determine self-consistent  beta(0)  value
+< c  First generate  A & B  from input Re, De and trial beta(0)
+---
+> c ... NOTE need iteration to determine self-consistent  phi(0)  value
+> c  First generate  A & B  from input Re, De and trial phi(0)
+477,478c385,386
+<    40     ULR= 0.d0
+<           dULR= 0.d0
+---
+>    40     VLR= 0.d0
+>           dVLR= 0.d0
+485,486c393,394
+<                   ULR= ULR+ AA
+<                   dULR= dULR- MMLR(j)*AA/Re
+---
+>                   VLR= VLR+ AA
+>                   dVLR= dVLR- MMLR(j)*AA/Re
+489c397
+<                   dULR= dULR+  MMLR(j)*BB*AA/(1.d0- FCT)
+---
+>                   dVLR= dVLR+  MMLR(j)*BB*AA/(1.d0- FCT)
+502,503c410,411
+<               ULR= 0.d0
+<               dULR= 0.d0
+---
+>               VLR= 0.d0
+>               dVLR= 0.d0
+506,507c414,415
+<                   ULR= ULR+ TTM
+<                   dULR= dULR+ yPOW*RHOd*(TT(MMLR(j)) - TT(MMLR(j)-1))
+---
+>                   VLR= VLR+ TTM
+> 		      dVLR= dVLR+ yPOW*RHOd*(TT(MMLR(j)) - TT(MMLR(j)-1))
+511,512c419,420
+<           AA= De - ULR - dULR/beta(0)
+<           BB= 2.d0*(De - ULR) - dULR/beta(0)
+---
+>           AA= De - VLR - dVLR/phi(0)
+>           BB= 2.d0*(De - VLR) - dVLR/phi(0)
+515,516c423,424
+<           UMAX= DSQRT(RAT**2 + (uVTP(i) + ULR - DE)/AA)
+<           ReDE= Re- dlog(RAT)/beta(0)
+---
+>           UMAX= DSQRT(RAT**2 + (UNC + VLR - DE)/AA)
+>           ReDE= Re- dlog(RAT)/phi(0)
+518c426
+<               ULR= 0.d0
+---
+>               VLR= 0.d0
+526c434
+<                       ULR= ULR+ CmVAL(j)*((1.d0-FCT)/RTP(i))**MMLR(j)
+---
+>                       VLR= VLR+ CmVAL(j)*((1.d0-FCT)/RTP(i))**MMLR(j)
+539c447
+<                       ULR= ULR+CmVAL(j)*(1.d0-TT(MMLR(j)))/
+---
+>                       VLR= VLR+CmVAL(j)*(1.d0-TT(MMLR(j)))/
+543c451
+<               FCT= (VTP(i) - VMIN + ULR - De)/AA + RAT**2
+---
+>               FCT= (VTP(i) - VMIN + VLR - De)/AA + RAT**2
+546,547c454,455
+<                     betay(i)= 0.d0
+<                     Ubetay(i)= 9.d99
+---
+>                     phiy(i)= 0.d0
+>                     Uphiy(i)= 9.d99
+553,555c461,463
+<                       betay(i)= - DLOG(RAT - FCT)
+<                       IF((VTP(i)-VMIN).GT.uVTP(i)) THEN
+<                           Ubetay(i)= 0.5d0*uVTP(i)/(AA*(RAT- FCT)*FCT)
+---
+>                       phiy(i)= - DLOG(RAT - FCT)
+>                       IF((VTP(i)-VMIN).GT.UNC) THEN
+>                           Uphiy(i)= 0.5d0*UNC/(AA*(RAT- FCT)*FCT)
+557c465
+<                           Ubetay(i)= uVTP(i)/(AA*UMAX*(RAT- UMAX))
+---
+>                           Uphiy(i)= UNC/(AA*UMAX*(RAT- UMAX))
+561,562c469,470
+<                       betay(i)= 0.d0
+<                       Ubetay(i)= 9.d9
+---
+>                       phiy(i)= 0.d0
+>                       Uphiy(i)= 9.d9
+565,567c473,475
+<                   betay(i)= - DLOG(RAT + FCT)
+<                   IF((VTP(i)-VMIN).GT.uVTP(i)) THEN
+<                       Ubetay(i)= 0.5d0*uVTP(i)/(AA*(RAT+ FCT)*FCT)
+---
+>                   phiy(i)= - DLOG(RAT + FCT)
+>                   IF((VTP(i)-VMIN).GT.UNC) THEN
+>                       Uphiy(i)= 0.5d0*UNC/(AA*(RAT+ FCT)*FCT)
+569c477
+<                       Ubetay(i)= uVTP(i)/(AA*UMAX*(RAT+ UMAX))
+---
+>                       Uphiy(i)= UNC/(AA*UMAX*(RAT+ UMAX))
+571a480
+>    44         uVTP(i)= UNC
+573c482
+<    44         yPOW= (RTP(i)- Re)
+---
+>               yPOW= (RTP(i)- Re)
+582c491
+<           CALL LLSQF(NTP,NPARM,MXDATA,MXPARM,betay,Ubetay,DYDP,YD,PV,
+---
+>           CALL LLSQF(NTP,NPARM,MXDATA,MXPARM,phiy,Uphiy,DYDP,YD,PV,
+584,586c493,495
+<           IF(DABS(PV(1)-BETA(0)).GT.PS(1)) THEN
+<               WRITE(6,644) beta(0),PV(1),PV(1)-beta(0),DSE
+<               beta(0)= PV(1)
+---
+>           IF(DABS(PV(1)-PHI(0)).GT.PS(1)) THEN
+>               WRITE(6,644) phi(0),PV(1),PV(1)-phi(0),DSE
+>               phi(0)= PV(1)
+591c500
+<               WRITE(6,648) PV(1),PV(1)-beta(0)
+---
+>               WRITE(6,648) PV(1),PV(1)-phi(0)
+594c503
+<      1                        ('beta',j-1,PV(j),PU(j),PS(j),j= 1,NPARM)
+---
+>      1                        ('phi',j-1,PV(j),PU(j),PS(j),j= 1,NPARM)
+602,603c511
+< c* FIRST optimize  BETA(j)'s (and VMIN) with  Re and De held fixed!
+<          
+---
+> c* FIRST optimize  PHI(j)'s (and VMIN) with  Re and De held fixed!
+605c513
+<               BETA(j-1)= PV(j)
+---
+>               PHI(j-1)= PV(j)
+608,610d515
+<           IF(SAP.GT.0) THEN
+<               IFXP(NPHI)= 1
+<               ENDIF
+622,625c527,529
+<               IF(SAP.LE.0) THEN
+<                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,NL,
+<      1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,DSE,
+---
+>               IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+>      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+>               IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+627,632d530
+<                 ELSE
+<                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,p,AREF,NS,NL,
+<      1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,p,NS,NL,DSE,
+<      1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                  ENDIF
+642,653c540,544
+<               IF(IWR.GT.0) THEN
+<                   IF(SAP.LE.0) THEN
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+<      1                         NL,DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+<      1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<                     ELSE
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+<      1                         NL,DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+<      1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                     ENDIF
+---
+>               IF(IWR.GE.1) THEN
+>                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+>      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+>                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+>      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+659c550
+< c ... then with Re fixed again, free De & VMIN (as well as the beta's)
+---
+> c ... then with Re fixed again, free De & VMIN (as well as the phi's)
+669c560
+<               IF((IWR.GT.0).OR.(DSE.GT.DSEB*1.01)) THEN
+---
+>               IF((IWR.GE.1).OR.(DSE.GT.DSEB*1.01)) THEN
+671,681c562,565
+<                   IF(SAP.LE.0) THEN
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+<      1                         NL,DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+<      1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<                     ELSE
+<                       IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+<      1                           NL,DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                       IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
+<      1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+<                     ENDIF
+---
+>                   IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+>      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+>                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+>      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+685c569
+<      1                WRITE(6,630) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
+---
+>      1                WRITE(6,628) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
+699,711c583,587
+<           IF(SAP.LE.0) THEN
+<               IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,NL,DSE,
+<      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<               IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,DSE,
+<      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+<             ELSE
+<               IF(RREF.GT.0.d0) WRITE(6,626) NNAME,p,AREF,NS,NL,DSE,
+<      1                       (j,ypSAP(j),j,PV(j),PU(j),PS(j),j=1,NPHI)
+<               IF(RREF.LE.0.d0) WRITE(6,628) NNAME,p,NS,NL,DSE,
+<      1                       (j,ypSAP(j),j,PV(j),PU(j),PS(j),j=1,NPHI)
+<               IF(RREF.GT.0.d0) WRITE(6,629) RREF
+<             ENDIF
+<           IF(PSEL.EQ.3) BETA(0)= PV(1)
+---
+>           IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+>      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+>           IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+>      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+>           IF(PSEL.EQ.3) PHI(0)= PV(1)
+713c589
+<           WRITE(6,630) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
+---
+>           WRITE(6,628) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
+715,718c591,594
+< ccc 
+< c         WRITE(7,730) (RTP(I),YD(I),I= 1,NTP)
+< c 730 FORMAT((4(f10.5,f8.3)))
+< ccc
+---
+> c
+> cc        WRITE(7,730) (RTP(I),YD(I),I= 1,NTP)
+> cc730 FORMAT((4(f10.5,f8.3)))
+> c
+722c598
+<           IF(PSEL.EQ.3) beta(0)= PV(1)
+---
+>           IF(PSEL.EQ.3) phi(0)= PV(1)
+731,732c607,608
+<               uVTP(i)= uVTP(i)
+<               betay(i)= VTP(i)
+---
+>               uVTP(i)= UNC
+>               phiy(i)= VTP(i)
+753c629
+<               CALL LLSQF(NTP,NPARM,MXDATA,MXPARM,betay,uVTP,DYDP,YD,PV,
+---
+>               CALL LLSQF(NTP,NPARM,MXDATA,MXPARM,phiy,uVTP,DYDP,YD,PV,
+797,814c673,689
+<       IF(SAP.LE.0) THEN
+<           RH= RTP(1)*1.0d-2
+<           RR= RTP(1)
+<           VV= VTP(1)
+<           RB= RR+ RH
+<           J= -1
+<           CALL DYIDPJ(J,MXDATA,NPARM,IFXP,VB,PV,PU,PS,RB)
+<           INFL= 0
+<           DO  I= 1,99
+<               J= J- 1
+<               RBB= RB
+<               VBB= VB
+<               RB= RR
+<               VB= VV
+<               RR= RR- RH
+<               CALL DYIDPJ(J,MXDATA,NPARM,IFXP,VV,PV,PU,PS,RR)
+<               IF(INFL.GT.0) THEN
+<                   IF(VV.LT.VB) THEN
+---
+>       RH= RTP(1)*1.0d-2
+>       RR= RTP(1)
+>       VV= VTP(1)
+>       RB= RR+ RH
+>       J= -1
+>       CALL DYIDPJ(J,MXDATA,NPARM,IFXP,VB,PV,PU,PS,RB)
+>       INFL= 0
+>       DO  I= 1,99
+>           J= J- 1
+>           RBB= RB
+>           VBB= VB
+>           RB= RR
+>           VB= VV
+>           RR= RR- RH
+>           CALL DYIDPJ(J,MXDATA,NPARM,IFXP,VV,PV,PU,PS,RR)
+>           IF(INFL.GT.0) THEN
+>               IF(VV.LT.VB) THEN
+816,821c691,696
+<                       WRITE(6,672) RB,VB
+<                       WRITE(6,608)
+<                       GOTO 10
+<                       ENDIF
+<                 ELSE
+<                   IF((VV-VB).LE.(VB-VBB)) THEN
+---
+>                   WRITE(6,672) RB,VB
+>                   WRITE(6,608)
+>                   GOTO 10
+>                   ENDIF
+>             ELSE
+>               IF((VV-VB).LE.(VB-VBB)) THEN
+823,828c698,702
+<                       INFL= 1
+<                       WRITE(6,670) RB,VB
+<                       ENDIF
+<                 ENDIF
+<               ENDDO
+<           ENDIF
+---
+>                   INFL= 1
+>                   WRITE(6,670) RB,VB
+>                   ENDIF
+>             ENDIF
+>           ENDDO
+834c708
+<   619 FORMAT(' Linearized fit uses    beta(INF)=',f10.6)
+---
+>   619 FORMAT(' Linearized fit uses    phi(INF)=',f10.6)
+836c710
+<      1 i2,'   yields   DSE=',1Pd9.2/(3x,a4,'_{',i2,'} =',d19.11,
+---
+>      1 i2,'   yields   DSE=',1Pd9.2/(4x,a3,'_{',i2,'} =',d17.9,
+838,855c712,722
+<   622 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',i1,'; Rref=',f5.2,
+<      1  ' ; NS=',i2,', NL=',I2,'}  potl:   DSE=',1Pd9.2/
+<      2  ('   beta_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',d8.1))
+<   624 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',I1,
+<      1 '; Rref= Re ; NS=',i2,', NL=',I2,'}  potl:   DSE=',1Pd9.2/
+<      2 ('   beta_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',d8.1))
+<   626 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,' ; NS=',i2,
+<      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/(' ypSAP{',i2,'}=',
+<      20PF11.7,'   beta_{',i2,'}=',1Pd19.11,' (+/-',d8.1,')   PS=',d8.1))
+<   628 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref= Re ; NS=',i2,
+<      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/(' ypSAP{',i2,'}=',
+<      20PF11.7,'   beta_{',i2,'}=',1Pd19.11,' (+/-',d8.1,')   PS=',d8.1))
+<   629 FORMAT(8x,'Rref ='f15.12)
+<   630 FORMAT(10x,'De =',f13.6,' (+/-',f12.6,')   PS=',1pd8.1)
+<   634 FORMAT(' Use Huang exponent fx:  beta(R)= betaINF*y_',i2,
+<      1 ' + (1-y_',I1,')* Sum{beta_i*[y_',i1,']^i}')
+<   650 FORMAT(' Use Pashov natural spline exponent based on', i4,'  yp va
+<      1lues for  y < 0'/41x,'and',i4,'  yp values for  y > 0')
+---
+>   622 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,' ; NS=',i2,
+>      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
+>      2  ('    phi_{',i2,'} =',d17.9,' (+/-',d8.1,')   PS=',d8.1))
+>   624 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref= Re ; NS=',i2,
+>      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
+>      2  ('    phi_{',i2,'} =',d17.9,' (+/-',d8.1,')   PS=',d8.1))
+>   628 FORMAT(10x,'De =',f13.6,' (+/-',f12.6,')   PS=',1pd8.1)
+>   632 FORMAT(' Use exponent switching function with   Asw=',F9.6,
+>      1  '   Rsw=',F9.6)
+>   634 FORMAT(' Use Huang exponent function:  phi(R)= phiINF*y_p + (1-y_p
+>      1)* Sum{phi_i*[y_p]^i}')
+858c725
+<   644 FORMAT('   Update  beta_0  from',f9.6,'   to',f9.6,'   by',
+---
+>   644 FORMAT('   Update  phi_0  from',f9.6,'   to',f9.6,'   by',
+860,862c727,729
+<   646 FORMAT(' !!! CAUTION !!! Iteration to optimize  beta(0)  not conve
+<      1rged after',i3,' tries')
+<   648 FORMAT('   Converge on   beta_0=',f9.6,'   Next change=',1Pd9.1)
+---
+>   646 FORMAT(' !!! CAUTION !!! Iteration to optimize  phi(0)  not conver
+>      1ged after',i3,' tries')
+>   648 FORMAT('   Converge on   phi_0=',f9.6,'   Next change=',1Pd9.1)
+868c735
+<   660 FORMAT(8x,'VMIN =',f13.5,' (+/-',f12.6,')   PS=',1pd8.1)
+---
+>   660 FORMAT(8x,'VMIN =',f13.7,' (+/-',f12.6,')   PS=',1pd8.1)
+887,888c754,755
+<       PARAMETER (MXDATA=1501, MXPARM=40, MXMLR= 8)
+<       INTEGER  i,j,IDAT, NPOW,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,
+---
+>       PARAMETER (MXDATA=1501, MXPARM=30, MXMLR= 8)
+>       INTEGER  j,IDAT, NPOW,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,
+891,900c758,768
+<      1  RTPq,Rep,AREF,AREFp,AREFq,ype,dype,betaINF,yp,yq,yPOW,XP,
+<      2  XPW,DER,TTM,TTMM,DERP,SUM,DSUM,AA,BB,FCT,ULR,ULRe,dULRe,d2ULRe,
+<      3  VCN,DDER,T0,T0P,T1,RE3,RE6,RE8,RTP3,RTP6,RTP8,dULRedRe,RDIST,
+< ----------------------------------------------------------------------
+<       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,q,NS,NL,
+<      1                                                        NPHI,SAP
+<       REAL*8 Re,De,VMIN,RREF,M2,as,bs,RHOd,
+<      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM)
+<       COMMON /DATABLK/Re,De,VMIN,RREF,M2,as,bs,RHOd,CmVAL,RTP,SAS,PSEL,
+<      1          IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,q,NS,NL,NPHI,SAP
+---
+>      1  Rep,AREF,AREFp,ype,dype,phiINF,yp,fsw,yPOW,XP,XPW,DER,TTM,TTMM,
+>      2  DERP,SUM,DSUM,AA,BB,FCT,VLR,VLRe,dVLRe,d2VLRe,VCN,DDER, T0,T1,
+>      3  RE3,RTP3,dVLRedRe,RDIST
+> c-----------------------------------------------------------------------
+>       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
+>      1                                                            NPHI
+>       REAL*8 Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,RHOd,
+>      1  CmVAL(MXMLR),RTP(MXDATA)
+>       COMMON /DATABLK/Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,
+>      1  RHOd,CmVAL,RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,NS,NL,
+>      2                                                            NPHI
+902,903c770,771
+<       SAVE JFXRe,JFXDe,JFXVMIN, AREF,AREFp,Rep,betaINF,AA,BB, ULRe,
+<      1  dULRedRe
+---
+>       SAVE JFXRe,JFXDe,JFXVMIN, AREF,AREFp,Rep,phiINF,AA,BB, VLRe,
+>      1  dVLRedRe
+971d838
+<               AREFq= AREF**q
+973,996c840,849
+<               IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
+< c** For Aubert-Frecon based  ULR(r)
+<                   RE3= 1.d0/Re**3
+<                   RE6= RE3*RE3
+<                   C6adj= CmVAL(3) + CmVAL(1)**2/(4.d0*DE)
+<                   C9adj= 0.5d0*CmVAL(1)*C6adj/De
+<                   T1= (0.5d0*CmVAL(1)+ (C6adj- CmVAL(4))*RE3)*RE3/3.d0
+<                   IF(NCMM.GT.4) THEN
+< c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
+<                       RE8= RE6/Re**2
+<                       T1= T1+ (CmVAL(5)- CmVAL(6))*RE8/3.d0
+<                       ENDIF
+<                   T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
+<                   ULRe= 0.5d0*( - CmVAL(2) + (1.5d0*CmVAL(1)
+<      1         + (C6adj + CmVAL(4))*RE3)*RE3) + 0.5d0*T0 + C9adj*RE6*RE3
+<                   IF(NCMM.GT.4) ULRe= ULRe+0.5d0*(CmVAL(5)+CmVAL(6))*RE8
+<                   T0P= (9.d0*T1-CmVAL(2))/T0
+<                   dULRedRe= -RE3*(0.25d0*CmVAL(1)*(9.d0 + T0P)
+<      1               + RE3*(C6adj*(3.d0 + T0P) + CmVAL(4)*(3.d0 - T0P)
+<      2                                           + RE3*9.d0*C9adj))/Re
+<                   IF(NCMM.GT.4) THEN
+<                       dULRedRe= dULRedRe -RE8*4.d0*(CmVAL(5) 
+<      1                *(3.d0 + T0P) + CmVAL(6)*(3.d0 - T0P))/(3.d0*Re)
+<                       ENDIF
+---
+>               IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+> c** For Aubert-Frecon based  uLR(r)
+>                   RE3= Re**3
+>                   T1= M2/(9.d0*Re3)+ (5.d0*R01+ R12)/(45.d0*RE3**2)
+>                   T0= DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+>                   VLRe= 0.5d0*(M2/RE3 - ASO) + 0.5d0*T0  
+>      1                         + (5.d0*R01 + 8.2d0*R12)/(18.d0*RE3**2)
+>                   dVLRedRe= (-1.5d0*M2 - (5.d0*R01 + 8.2d0*R12)
+>      1                        /(3.d0*RE3) - 0.5d0*((9.d0*T1- ASO)/T0)*
+>      2        (M2/3.d0 + (10.d0*R01 + 2.d0*R12)/(15.d0*Re3)))/(Re3*Re)
+998,1000c851,853
+< c** For normal inverse-power sum  ULR(r)  ....
+<                   ULRe= 0.d0
+<                   dULRedRe= 0.d0
+---
+> c** For normal inverse-power sum  uLR(r)  ....
+>                   VLRe= 0.d0
+>                   dVLRedRe= 0.d0
+1003,1004c856,857
+<                       ULRe= ULRe+ AA
+<                       dULRedRe= dULRedRe - MMLR(j)*AA/Re
+---
+>                       VLRe= VLRe+ AA
+>                       dVLRedRe= dVLRedRe - MMLR(j)*AA/Re
+1007c860
+<               betaINF= DLOG(2.d0*De/ULRe)
+---
+>               phiINF= DLOG(2.d0*De/VLRe)
+1010d862
+<           RTPq= RDIST**q
+1012d863
+<           yq= (RTPq - AREFq)/(RTPq + AREFq)
+1014,1029c865,867
+<           IF(SAP.GT.0) THEN
+< c*** Case of Pashov natural spline exponent ....
+<               NPOW= NPHI
+< c... Now, use a spline through the exponent values defined by the input
+< c    points to generate values of that exponent at the desired
+< c    spline-definition points
+<               XP= 0.d0
+<               DO  J= 1,NPOW
+<                   PD(J)= SAS(IDAT,J)
+<                   XP= XP + PV(J)*PD(J)
+<                   ENDDO
+<               ENDIF
+<           IF(SAP.LE.0) THEN
+< c... For conventional case of a constrained polynomial exponent function
+<               NPOW= NS+1
+<               IF(RDIST.GE.Re) NPOW= NL+1
+---
+>           NPOW= NS+1
+>           IF(RDIST.GE.Re) NPOW= NL+1
+>           IF(Asw.LE.0.d0) THEN
+1031,1040c869,880
+<               SUM= PV(1)*yPOW
+<               DSUM= 0.d0
+<               IF(NPOW.GE.2) THEN
+<                   DO  j= 2,NPOW
+<                       IF(RREF.LE.0.d0) DSUM= DSUM + PV(j)*(j-1)*yPOW
+<                       yPOW= yPOW*yq
+<                       SUM= SUM+ yPOW*PV(j)
+<                       ENDDO
+<                   ENDIF
+<               XP= SUM + betaINF*yp
+---
+>             ELSE
+>               fsw= 1.d0/(dexp(Asw*(RDIST-Rsw)) + 1.d0)
+>               yPOW= fsw
+>             ENDIF
+>           SUM= PV(1)*yPOW
+>           DSUM= 0.d0
+>           IF(NPOW.GE.2) THEN
+>               DO  j= 2,NPOW
+>                   IF(RREF.LE.0.d0) DSUM= DSUM + PV(j)*(j-1)*yPOW
+>                   yPOW= yPOW*yp
+>                   SUM= SUM+ yPOW*PV(j)
+>                   ENDDO
+1042,1063c882,895
+<           IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
+< c** For Aubert-Frecon based  ULR(r)
+<               RTP3= 1.d0/RDIST**3
+<               RTP6= RTP3*RTP3
+<               T1= (0.5d0*CmVAL(1) + (C6adj - CmVAL(4))*RTP3)*RTP3/3.d0
+<               IF(NCMM.GT.4) THEN
+< c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
+<                   RTP8= RTP6/RDIST**2
+<                   T1= T1+ (CmVAL(5)- CmVAL(6))*RTP8/3.d0
+<                   ENDIF
+<               T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
+<               ULR= 0.5d0*( - CmVAL(2) + (1.5d0*CmVAL(1) + (C6adj 
+<      1            + CmVAL(4))*RTP3)*RTP3) + 0.5d0*T0 + C9adj*RTP3*RTP6
+<               IF(NCMM.GT.4) ULR= ULR + 0.5d0*(CmVAL(5)+ CmVAL(6))*RTP8
+< c... SKIP Re derivative corrections for all?
+<               T0P= (9.d0*T1-CmVAL(2))/T0
+< c             dULRdRe= -RTP3*(0.25d0*CmVAL(1)*(9.d0 + T0P)
+< c    1      + RTP3*(CmVAL(3)*(3.d0 + T0P) + CmVAL(4)*(3.d0 - T0P)))/Re
+<               ENDIF
+<           IF((NCMM.LE.1).OR.(MMLR(2).GT.0)) THEN
+< c** For normal inverse-power sum  ULR(r)  ....
+<               ULR= 0.d0
+---
+>           IF(Asw.LE.0.d0) THEN
+>               XP= SUM + phiINF*yp
+>             ELSE
+>               XP= SUM + phiINF*(1.d0 - fsw)
+>             ENDIF
+>           IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+> c** For Aubert-Frecon based  uLR(r)
+>               RTP3= RDIST**3
+>               T1= M2/(9.d0*RTP3) + (5.d0*R01+R12)/(45.d0*RTP3**2)
+>               VLR= 0.5d0*M2/RTP3 + (5.d0*R01 + 8.2d0*R12)
+>      1       /(18.d0*RTP3**2) + 0.5d0*DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+>             ELSE
+> c** For normal inverse-power sum  uLR(r)  ....
+>               VLR= 0.d0
+1065c897
+<                   ULR= ULR+ CmVAL(j)/RDIST**MMLR(j)
+---
+>                   VLR= VLR+ CmVAL(j)/RDIST**MMLR(j)
+1068c900
+<           XPW= DEXP(-XP*ype) * ULR/ULRe
+---
+>           XPW= DEXP(-XP*ype) * VLR/VLRe
+1071,1076c903,904
+<           yPOW= DER*ype*(1.d0- yp)
+<           IF(SAP.GT.0) THEN
+< c... finalize derivative w.r.t. exponent beta-function spline points ...
+<               DO  J= 1,NPOW
+<                   PD(J)= PD(J)*DER*ype
+<                   ENDDO 
+---
+>           IF(Asw.LE.0.d0) THEN
+>               yPOW= DER*ype*(1.d0- yp)
+1078,1082c906
+< c... finalize derivative w.r.t. exponent polynomial coefficient ....
+<               DO  j= 1,NPOW
+<                   PD(j)= yPOW
+<                   yPOW= yPOW*yq
+<                   ENDDO
+---
+>               ypow= DER*ype*fsw
+1083a908,911
+>           DO  j= 1,NPOW
+>               PD(j)= yPOW
+>               yPOW= yPOW*yp
+>               ENDDO
+1085c913,919
+<           IF(JFXDe.LE.0) PD(NPHI+2)= (1.d0- XPW)**2 + DER*ype*yp/De
+---
+>           IF(JFXDe.LE.0) THEN
+>               IF(Asw.LE.0.d0) THEN
+>                   PD(NPHI+2)= (1.d0- XPW)**2 + DER*ype*yp/De
+>                 ELSE
+>                   PD(NPHI+2)= (1.d0- XPW)**2 + DER*ype*(1.d0- fsw)/De
+>                 ENDIF
+>               ENDIF
+1090,1091c924,932
+<               IF(RREF.LE.0.d0) THEN
+<                   DSUM= betaINF - SUM/(1.d0-yp) + DSUM 
+---
+>               IF(Asw.LE.0.d0) THEN
+> c ... either for Huang exponent function ...
+>                   IF(RREF.LE.0.d0) THEN
+>                       DSUM= phiINF - SUM/(1.d0-yp) + DSUM 
+>                     ELSE
+>                       DSUM= 0.d0
+>                     ENDIF
+>                   PD(NPHI+1)= DER*(dype*(XP + ype*DSUM) 
+>      1                               + (1.d0 - ype*yp)*dVLRedRe/VLRe )
+1093c934,937
+<                   DSUM= 0.d0
+---
+> c ... or for Hajigeorgiou exponent function ...
+>                   IF(RREF.GT.0.d0) DSUM= 0.d0
+>                   PD(NPHI+1)= DER*((ype*(1.d0- fsw)*MMLR(1)
+>      1                           - MMLR(1))/Re + dype*(XP + ype*DSUM))
+1095,1096d938
+<               PD(NPHI+1)= DER*(dype*(XP + ype*DSUM) 
+<      1                               + (1.d0 - ype*yp)*dULRedRe/ULRe )
+1111,1113c953,955
+<               ULRe= 0.d0
+<               dULRe= 0.d0
+<               d2ULRe= 0.d0
+---
+>               VLRe= 0.d0
+>               dVLRe= 0.d0
+>               d2VLRe= 0.d0
+1115c957
+< c** Evaluate ULR & its first 2 deriv. at  Re ... 
+---
+> c** Evaluate VLR & its first 2 deriv. at  Re ... 
+1122,1123c964,965
+<                       ULRe= ULRe+ VCN
+<                       dULRe= dULRe- MMLR(j)*VCN/Re
+---
+>                       VLRe= VLRe+ VCN
+>                       dVLRe= dVLRe- MMLR(j)*VCN/Re
+1126,1127c968,969
+<                       dULRe= dULRe+  MMLR(j)*DDER*VCN/(1.d0- FCT)
+<                       d2ULRe= d2ULRe + MMLR(j)*(MMLR(j)+1)*VCN/Re**2
+---
+>                       dVLRe= dVLRe+  MMLR(j)*DDER*VCN/(1.d0- FCT)
+>                       d2VLRe= d2VLRe + MMLR(j)*(MMLR(j)+1)*VCN/Re**2
+1144,1146c986,988
+<                   ULRe= 0.d0
+<                   dULRe= 0.d0
+<                   d2ULRe= 0.d0
+---
+>                   VLRe= 0.d0
+>                   dVLRe= 0.d0
+>                   d2VLRe= 0.d0
+1149c991
+<                       ULRe= ULRe+ TTM
+---
+>                       VLRe= VLRe+ TTM
+1152,1153c994,995
+<                       dULRe= dULRe+ TTMM - MMLR(j)*TTM/Re
+<                       d2ULRe= d2ULRe + MMLR(j)*(MMLR(j)+1)*TTM/Re**2
+---
+>                       dVLRe= dVLRe+ TTMM - MMLR(j)*TTM/Re
+>                       d2VLRe= d2VLRe + MMLR(j)*(MMLR(j)+1)*TTM/Re**2
+1159,1160c1001,1002
+<               AA= De - ULRe - dULRe/PV(1)
+<               BB= 2.d0*(De - ULRe) - dULRe/PV(1)
+---
+>               AA= De - VLRe - dVLRe/PV(1)
+>               BB= 2.d0*(De - VLRe) - dVLRe/PV(1)
+1164,1165c1006,1007
+<           ULR= 0.d0
+< c ... evaluate ULR at the actual distance ...
+---
+>           VLR= 0.d0
+> c ... evaluate VLR at the actual distance ...
+1171c1013
+<                   ULR= ULR+ CmVAL(j)*((1.d0- FCT)/RDIST)**MMLR(j)
+---
+>                   VLR= VLR+ CmVAL(j)*((1.d0- FCT)/RDIST)**MMLR(j)
+1184c1026
+<                   ULR=ULR+CmVAL(j)*(1.d0-TT(MMLR(j)))/RDIST**MMLR(j)
+---
+>                   VLR=VLR+CmVAL(j)*(1.d0-TT(MMLR(j)))/RDIST**MMLR(j)
+1200c1042
+<           YC= (AA*XP - BB)*XP + De - ULR + VMIN
+---
+>           YC= (AA*XP - BB)*XP + De - VLR + VMIN
+1207c1049
+<           PD(1)= PD(1) + XP*(XP-1.d0)*dULRe/PV(1)**2
+---
+>           PD(1)= PD(1) + XP*(XP-1.d0)*dVLRe/PV(1)**2
+1218,1219c1060,1061
+<               PD(NPHI+1)= DER*(DSUM - SUM) - XP*((XP- 2.d0)*dULRe 
+<      1                                       - (XP-1.d0)*D2ULRe/PV(1))
+---
+>               PD(NPHI+1)= DER*(DSUM - SUM) - XP*((XP- 2.d0)*dVLRe 
+>      1                                       - (XP-1.d0)*D2VLRe/PV(1))
+1227c1069
+<       IF(PSEL.EQ.4) THEN
+---
+>        IF(PSEL.EQ.4) THEN
