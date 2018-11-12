@@ -1,0 +1,18 @@
+DR(1,1) = dble((6 * 	M1 * RDIST ** 5 * De + 12 * RDIST ** 2 * M2 * De + 3 * RDIST ** 2 * M1 ** 2 + 16 * M5 * De) / RDIST ** 9 / De) / 0.6D1
+DR(1,2) = -dble(6 * M1 * RDIST ** 5 * De + 12 * RDIST ** 2 * M2 * De + 3 * RDIST ** 2 * M1 ** 2 + 16 * M5 * De) * sqrt(0.2D1) / dble(RDIST ** 9) / dble(De) / 0.6D1
+DR(1,3) = -sqrt(0.6D1) * dble(M1) / dble(RDIST ** 4) / 0.2D1
+DR(2,1) = -dble(6 * M1 * RDIST ** 5 * De + 12 * RDIST ** 2 * M2 * De + 3 * RDIST ** 2 * M1 ** 2 + 16 * M5 * De) * sqrt(0.2D1) / dble(RDIST ** 9) / dble(De) / 0.6D1
+DR(2,2) = dble((6 * M1 * RDIST ** 5 * De + 12 * RDIST ** 2 * M2 * De + 3 * RDIST ** 2 * M1 ** 2 + 16 * M5 * De) / RDIST ** 9 / De) / 0.3D1
+DR(2,3) = -dble(M1) * sqrt(0.3D1) / dble(RDIST ** 4) / 0.2D1
+DR(3,1) = -sqrt(0.6D1) * dble(M1) / dble(RDIST ** 4) / 0.2D1
+DR(3,2) = -dble(M1) * sqrt(0.3D1) / dble(RDIST ** 4) / 0.2D1
+
+
+M1(1,1) = -dble((2 * RDIST ** 3 * De + M1) / RDIST ** 6 / De) / 0.6D1
+M1(1,2) = dble(2 * RDIST ** 3 * De + M1) / dble(RDIST ** 6) / dble(De) * sqrt(0.2D1) / 0.6D1
+M1(1,3) = sqrt(0.6D1) / dble(RDIST ** 3) / 0.6D1
+M1(2,1) = dble(2 * RDIST ** 3 * De + M1) / dble(RDIST ** 6) / dble(De) * sqrt(0.2D1) / 0.6D1
+M1(2,2) = -dble((2 * RDIST ** 3 * De + M1) / RDIST ** 6 / De) / 0.3D1
+M1(2,3) = 0.1D1 / dble(RDIST ** 3) * sqrt(0.3D1) / 0.6D1
+M1(3,1) = sqrt(0.6D1) / dble(RDIST ** 3) / 0.6D1
+M1(3,2) = 0.1D1 / dble(RDIST ** 3) * sqrt(0.3D1) / 0.6D1
