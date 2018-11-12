@@ -4,30 +4,30 @@ c***********************************************************************
 c* Program to fit NTP read-in potential fx. values {RTP(i),VTP(i)} to
 c  a chosen analytic form.
 c***********************************************************************
-      INTEGER MXDATA, MXPARM, MXMLR
-      PARAMETER (MXDATA=1501, MXPARM=40, MXMLR= 8)
-      INTEGER I,J,INFL,ITER,IROUND,ROBUST,LPRINT,IWR,M,NPARM,NTP,
-     1  NLIN,IFXP(MXPARM)
-      REAL*8 BETA(0:MXPARM),PV(MXPARM),PU(MXPARM),PS(MXPARM),
-     1 CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
-     2 uVTP(MXDATA),betay(MXDATA),Ubetay(MXDATA),YD(MXDATA),
-     3 ypSAP(MXPARM),xSAP(MXDATA), rKL(1:MXDATA,1:MXDATA),
-     3 betaINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
-     4 Rep,AREF,AREFp,AREFq,RTPp,RTPq, AA,BB,ULR,dULR,FCT,RAT,UMAX,
-     5 XX,YY,YH,yp,yq,fsw,ypRE,ReDE, ReIN,DeIN,VMINin ,ULRe,RE3,RE6,
-     6 RE8,T0,T1,C6adj,C9adj,RTP3,RTP6,RTP8,RH,RR,RB,RBB,VV,VB,VBB,
-     7 SCALC
-      CHARACTER*4  NNAME,NAME(5)
-      DATA NAME/' EMO',' MLJ',' MLR','DELR','GPEF'/
 c-----------------------------------------------------------------------
-      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,q,NS,NL,
+      INTEGER MXDATA, MXPARM, MXMLR
+      PARAMETER (MXDATA=1501, MXPARM=50, MXMLR= 8)
+      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
      1                                                        NPHI,SAP
       REAL*8 Re,De,VMIN,RREF,Asw,Rsw,M2,as,bs,RHOd,
      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM)
       COMMON /DATABLK/Re,De,VMIN,RREF,Asw,Rsw,M2,as,bs,
-     1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,q,
+     1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,
      2                                                  NS,NL,NPHI,SAP
 c-----------------------------------------------------------------------
+      INTEGER I,J,INFL,ITER,IROUND,ROBUST,LPRINT,IWR,M,NPARM,NTP,
+     1  NLIN,IFXP(MXPARM)
+      REAL*8 BETA(0:MXPARM),PV(MXPARM),PU(MXPARM),PS(MXPARM),
+     1  CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
+     2  uVTP(MXDATA),betay(MXDATA),Ubetay(MXDATA),YD(MXDATA),
+     3  ypSAP(MXPARM),xSAP(MXDATA), rKL(1:MXDATA,1:MXDATA),
+     3  betaINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
+     4  Rep,AREF,AREFp,RTPp, AA,BB,ULR,dULR,FCT,RAT,UMAX,XX,YY,YH,
+     5  yp,fsw,ypRE,ReDE, ReIN,DeIN,VMINin ,ULRe,RE3,RE6,RE8,T0,T1,
+     6  C6adj,C9adj,RTP3,RTP6,RTP8,RH,RR,RB,RBB,VV,VB,VBB, SCALC,
+     7  DEIGM1(1,1),DEIGR(1,1),DEIGRe(1,1)
+      CHARACTER*4  NNAME,NAME(5)
+      DATA NAME/' EMO',' MLJ',' MLR','DELR','GPEF'/
       ROBUST= 0
 c-----------------------------------------------------------------------
 c** PSEL  specifies the type of potential being fitted to:
@@ -148,15 +148,18 @@ c** For Lyon treatment of A-state alkali dimers ...
 c
   600 FORMAT(' Determine  EMOp  exponent expansion coefficients'/
      1  1x,24('==')/' Start with   Re=',f11.8,'   De=',f11.4)
-  601 FORMAT(' using exponent expansion variable  y_',i1,'(r)= [r^',i1,
+  601 FORMAT(' Using exponent expansion variable  y',i1,'(r)= [r^',i1,
      1 ' -',f8.4,'^',i1,']/[r^',i1,' +',f8.4,'^',i1,']' )
   602 FORMAT(' Fit an ',A4,'p  potential function to the input points'/
      1  1x,24('==')/' Start with   Re=',f11.8,'   De=',f11.4,'    C',
      2  i2,'=',1PD15.8:/(49x,'C',i2,'=',D15.8:))
-  618 FORMAT(' Use Lyon 2x2 ULR(r) with   C_0=',F10.6,'   C_6(Sigma)=',
-     1  1PD15.7/45x,'C_6(Pi)   =',D15.7)
+  618 FORMAT(' Use Lyon  ULR(r) with   C_0=',F10.6,'   C_6(Sigma)=',
+     1  1PD15.7/42x,'C_6(Pi)   =',D15.7)
   617 FORMAT(42x,'C_8(Sigma)=',1PD15.7/42x,'C_8(Pi)   =',D15.7)
-  603 FORMAT(' using exponent expansion variable  y_',i1,'(r)= [r^',i1,
+  698 FORMAT(' Use Lyon  ULR(r) with   C_0=',F10.6,'   C_6(Sigma)=',
+     1  1PD15.7/42x,'C_6(Pi)   =',D15.7)
+  699 FORMAT(42X,'C_8(Sigma)=',1PD15.7/42x,'C_8(Pi)   =',D15.7)
+  603 FORMAT(' Use exponent expansion variable  y',i1,'(r)= [r^',i1,
      1 ' - Re^',i1,']/[r^',i1,' + Re^',i1,']' )
   652 FORMAT( '   & define beta(y(r)) as a natural spline through points
      1 at the',i4,'  yp values:'/(2x,7F11.7))
@@ -183,10 +186,8 @@ c
   614 FORMAT('  VLR component of potential uses Tang-Toennies damping fu
      1nction')
 c=======================================================================
-c** Now ... loop over different {p,q,NS,NL} combinations till end of data
-c**  p and q are powers used to define radial variable in the exponent
-c       beta(r)= yp*betaINF + sum{beta_i*yq^i} where  
-c       ya=(R^a - AREF^a)/(R^a + AREF^a)
+c** Now ... loop over different {p,NS,NL} combinations till end of data
+c*  p  is power in expansion variable  yp=(R^p - AREF^p)/(R^p + AREF^p)
 c** Read powers NS used in  \beta(y)  expansion for  r > Re  and 
 c               NL used in  \beta(y)  expansion for  r = Re  or  > Re 
 c** For an MLR potential with  SAP > 0,  (NS+NL+1) is the number of yp
@@ -198,7 +199,7 @@ c* RREF   defines the reference distance in the expansion variable
 c      - for  RREF.le.0 , define parameter  RREF = Re
 c      - for  RREF.gt.0 , fix parameter  RREF   at its read-in value
 c-----------------------------------------------------------------------
-   10 READ(5,*, END= 999) p, q, NS, NL, RREF
+   10 READ(5,*, END= 999) p, NS, NL, RREF
 c-----------------------------------------------------------------------
       Re= ReIN
       De= DeIN
@@ -211,7 +212,7 @@ c-----------------------------------------------------------------------
           IF(SAP.GT.0) WRITE(6,650) NS,NL
           IF(SAP.LE.0) THEN
               IF(Asw.GT.0.d0) WRITE(6,632) Asw, Rsw
-              IF(Asw.LE.0.d0) WRITE(6,634) p,p,q
+              IF(Asw.LE.0.d0) WRITE(6,634) 
               ENDIF
           ENDIF
       IF(PSEL.EQ.3) THEN
@@ -222,10 +223,10 @@ c-----------------------------------------------------------------------
       IF(PSEL.LE.3) THEN
           IF(RREF.gt.0.d0) THEN
               AREF= RREF
-              WRITE(6,601) q,q,AREF,q,q,AREF,q
+              WRITE(6,601) p,p,AREF,p,p,AREF,p
             ELSE
               AREF= Re
-              WRITE(6,603) q,q,q,q,q
+              WRITE(6,603) p,p,p,p,p
             ENDIF
           IF((PSEL.EQ.2).AND.(SAP.GT.0)) THEN
               YH= -Rsw/NS
@@ -244,7 +245,6 @@ c-----------------------------------------------------------------------
               WRITE(6,652) NPHI,(ypSAP(i), i= 1,NPHI)
               ENDIF
           AREFp= AREF**p
-          AREFq= AREF**q
           ENDIF
       DSE= VMIN
 c** Scan input potential array to ensure  VMIN .le. {lowest input point}
@@ -263,9 +263,7 @@ c ... first define ordinate array
           NNAME= NAME(1)
           DO  i= 1,NTP
               RTPp= RTP(i)**p
-              RTPq= RTP(i)**q
               yp= (RTPp - AREFp)/(RTPp + AREFp)
-              yq= (RTPq - AREFq)/(RTPq + AREFq)
               IF(RTP(i).GT.Re) THEN
                   betay(i)= - DLOG(1.d0 - DSQRT((VTP(i)-VMIN)/De))
                   IF(VTP(i).GT.UNC) THEN
@@ -294,11 +292,11 @@ c ... next create partial derivative array for linearized fit ...
                   ENDDO
 c%%
 cc        if(i.eq.1) write(8,700) 
-cc        write(8,702) rtp(i),yp,vtp(i),betay(i),Ubetay(i),
-cc   1                                           (dydp(i,j),j=1,nphi)
-cc700 format('  RTP     yp      VTP      beta*y      unc(beta*y) :',
-cc   1  ' {dY/dp}')
-cc702 format(f6.3,f8.4,f9.2,1P2d13.5:/(14x,5d13.5))
+cc        write(8,702) rtp(i),yp,vtp(i),betay(i),Ubetay(i)
+cc   1                                 ,(dydp(i,j),j=1,nbeta)
+  700 format('  RTP     yp      VTP      beta*y      unc(beta*y) :',
+     1  ' {dY/dp}')
+  702 format(f6.3,f8.4,f9.2,1P2d13.5:/(14x,5d13.5))
 c%%
               ENDDO
           NPARM= NPHI
@@ -335,25 +333,31 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
                   ULRe= ULRe+ 0.5d0*(CmVAL(5)+ CmVAL(6))*RE8
                   WRITE(6,617) CmVAL(5),CmVAL(6)
                   ENDIF
-            ELSE
+              ENDIF
+          IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+c ... for Aubert-Frecon 3x3 Li2(c) {3,0,6,6,8,8} case ...
+              CALL AF3X3(RE,CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+     1	                                        DEIGM1,DEIGR,MXMLR)
+              ULRe=ULR
+              WRITE(6,698) (CmVAL(i),i=2,4)
+              IF(NCMM.GT.4) WRITE(6,699) CmVAL(5),CmVAL(6)
+	      ENDIF
 c** For normal inverse-power sum MLR/MLJ case
+          IF((NCMM.EQ.1).OR.(MMLR(2).GT.0)) THEN
               IF(NCMM.EQ.1) NNAME= NAME(2)
-              IF(p.LE.(MMLR(NCMM)-MMLR(1))) THEN
-                  WRITE(6,616) p, NCMM,MMLR(NCMM)-MMLR(1)
-                  ENDIF
+              IF(p.LE.(MMLR(NCMM)-MMLR(1)))
+     1                         WRITE(6,616) p, NCMM,MMLR(NCMM)-MMLR(1)
               ULRe= 0.d0
               DO  i= 1,NCMM
                   ULRe= ULRe + CmVAL(i)/Re**MMLR(i)
                   ENDDO
-            ENDIF
+              ENDIF
           betaINF= DLOG(2.d0*De/ULRe)
           WRITE(6,619) betaINF
           Rep= RE**p
           DO  i= 1, NTP
               RTPp= RTP(i)**p
-              RTPq= RTP(i)**q
               yp= (RTPp - AREFp)/(RTPp + AREFp)
-              yq= (RTPq - AREFq)/(RTPq + AREFq)
               ypRE= (RTPp - Rep)/(RTPp + Rep)
               xSAP(i)= ypRE
               IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
@@ -371,7 +375,17 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
      1                       + RTP3*(CmVAL(3) + CmVAL(4)))) + 0.5d0*T0
      2                                               + C9adj*RTP3*RTP6
                   IF(NCMM.GT.4) ULR= ULR+ 0.5d0*(CmVAL(5)+CmVAL(6))*RTP8
-                ELSE
+                  ENDIF
+c ... for Aubert-Frecon 3x3 Li2(c) {3,0,6,6,8,8} case ...
+              IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+		  CALL AF3X3(RTP(i),CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+     1                                             DEIGM1,DEIGR,MXMLR)
+                  ULR=ULR
+            WRITE(25,987) RTP(i) ,ULR
+  987   FORMAT(2D16.7)
+
+                  ENDIF
+              IF((NCMM.EQ.1).OR.(MMLR(2).GT.0)) THEN
 c... for normal MLR/MLJ case ...
                   ULR= 0.d0
                   DO  j= 1, NCMM
@@ -415,14 +429,14 @@ c... then create partial derivative array for linearized fit ...
                       DYDP(i,j)= yPOW
                       IF((RTP(i).GT.Re).AND.(j.GT.NL+1)) DYDP(i,j)= 0.d0
                       IF((RTP(i).LE.Re).AND.(j.GT.NS+1)) DYDP(i,j)= 0.d0
-                      yPOW= yPOW*yq
+                      yPOW= yPOW*yp
                       ENDDO
 c%%%
-cc                if(i.eq.1) write(8,700) 
-cc                        write(8,702) rtp(i),yp,vtp(i),betay(i),
-cc   1                                  Ubetay(i),(dydp(i,j),j=1,nphi)
-cc                write(8,800) rtp(i),yp,ypRE,ULR,betay(i)
-cc800 Format( f7.4,2f12.8,4(1Pd15.7))
+      if(i.eq.1) write(8,700) 
+              write(8,702) rtp(i),yp,vtp(i)+7091.6,betay(i),Ubetay(i)
+     1                                 ,(dydp(i,j),j=1,nphi)
+c             write(8,800) rtp(i),yp,ypRE,vlr,betay(i)
+c 800 Format( f7.4,2f12.8,4(1Pd15.7))
 c%%%
                   ENDIF
 
@@ -605,7 +619,6 @@ c** Now ... do direct non-linear fit to potential values ... first with
 c      Re and/or VMIN and De fixed, and then freeing them up too ...
 c=======================================================================
 c* FIRST optimize  BETA(j)'s (and VMIN) with  Re and De held fixed!
-         
           DO  j= 1,NPHI
               BETA(j-1)= PV(j)
               IFXP(j)= 0
@@ -625,14 +638,14 @@ c* FIRST optimize  BETA(j)'s (and VMIN) with  Re and De held fixed!
      1                        VTP,uVTP,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
           IF(IWR.GT.0) THEN
               IF(SAP.LE.0) THEN
-                  IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,NL,
-     1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
-                  IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,DSE,
+                  IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+     1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+                  IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
                 ELSE
-                  IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,p,AREF,NS,NL,
-     1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
-                  IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,p,NS,NL,DSE,
+                  IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
+     1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
+                  IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
      1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
                  ENDIF
               IF(IFXVMIN.LE.0)
@@ -646,15 +659,15 @@ c ... the, if appropriate, set  Re  free too ...
               Re= PV(NPHI+1)
               IF(IWR.GT.0) THEN
                   IF(SAP.LE.0) THEN
-                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
      1                         NL,DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
-                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
-     1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+     1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
                     ELSE
-                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
      1                         NL,DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
-                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
-     1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+     1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
                     ENDIF
                   WRITE(6,662) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
                   IF(IFXVMIN.LE.0)
@@ -674,15 +687,15 @@ c ... then with Re fixed again, free De & VMIN (as well as the beta's)
               IF((IWR.GT.0).OR.(DSE.GT.DSEB*1.01)) THEN
                   IF(DSE.GT.DSEB*1.01) WRITE(6,654) DSEB,DSE
                   IF(SAP.LE.0) THEN
-                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
+                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
      1                         NL,DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
-                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
-     1                            DSE,(j-1,PV(j),PU(j),PS(j),j=1,NPHI)
+                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+     1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
                     ELSE
-                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,
-     1                           NL,DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
-                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,
-     1                              DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+                      IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,
+     1                         NL,DSE,(j,PV(j),PU(j),PS(j),j=1,NPHI)
+                      IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
+     1                                  (j,PV(j),PU(j),PS(j),j=1,NPHI)
                     ENDIF
                   IF(IFXRe.LE.0) 
      1                WRITE(6,662) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
@@ -702,9 +715,9 @@ c ... and finally ... fit to all three of  VMIN, De and Re
           CALL NLLSSRR(NTP,NPARM,MXPARM,IROUND,ROBUST,LPRINT,IFXP,
      1                        VTP,uVTP,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
           IF(SAP.LE.0) THEN
-              IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,q,AREF,NS,NL,DSE,
+              IF(RREF.GT.0.d0) WRITE(6,622) NNAME,p,AREF,NS,NL,DSE,
      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
-              IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,q,NS,NL,DSE,
+              IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
             ELSE
               IF(RREF.GT.0.d0) WRITE(6,626) NNAME,p,AREF,NS,NL,DSE,
@@ -840,12 +853,12 @@ c-----------------------------------------------------------------------
   620 FORMAT(/' Linearized ',A4,'{p=',i1,'} fit with   NS=',i2,'   NL=',
      1 i2,'   yields   DSE=',1Pd9.2/(3x,a4,'_{',i2,'} =',d19.11,
      2 ' (+/-',d8.1,')   PS=',d8.1))
-  622 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',i1,'; Rref=',f5.2,
-     1  ' ; NS=',i2,', NL=',I2,'}  potl:   DSE=',1Pd9.2/
+  622 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,' ; NS=',i2,
+     1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
      2  ('   beta_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',d8.1))
-  624 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',I1,
-     1 '; Rref= Re ; NS=',i2,', NL=',I2,'}  potl:   DSE=',1Pd9.2/
-     2 ('   beta_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',d8.1))
+  624 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref= Re ; NS=',i2,
+     1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
+     2  ('   beta_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',d8.1))
   626 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,' ; NS=',i2,
      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/(' ypSAP{',i2,'}=',
      20PF11.7,'   beta_{',i2,'}=',1Pd19.11,' (+/-',d8.1,')   PS=',d8.1))
@@ -856,8 +869,8 @@ c-----------------------------------------------------------------------
   630 FORMAT(10x,'De =',f13.6,' (+/-',f12.6,')   PS=',1pd8.1)
   632 FORMAT(' Use exponent switching function with   Asw=',F9.6,
      1  '   Rsw=',F9.6)
-  634 FORMAT(' Use Huang exponent fx:  beta(R)= betaINF*y_',i2,
-     1 ' + (1-y_',I1,')* Sum{beta_i*[y_',i1,']^i}')
+  634 FORMAT(' Use Huang exponent fx:  beta(R)= betaINF*y_p + (1-y_p)* S
+     1um{beta_i*[y_p]^i}')
   650 FORMAT(' Use Pashov natural spline exponent based on', i4,'  yp va
      1lues for  y < 0'/41x,'and',i4,'  yp values for  y > 0')
   636 FORMAT(/' First perform full non-linear GPEF fit without taking ou
@@ -891,22 +904,22 @@ c  internal potential variables, while if  ABS{IDAT} > 1  use SAVEd values
 c... [Must ensure that calculations based on the current UPDATED PV(j)]
 c------------------------------------------------------------------------
       INTEGER MXDATA, MXPARM, MXMLR
-      PARAMETER (MXDATA=1501, MXPARM=40, MXMLR= 8)
-      INTEGER  i,j,IDAT, NPOW,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,
-     1  JFXVMIN
-      REAL*8  YC,PV(NPARM),PD(NPARM),PS(NPARM),TT(0:20),RHOdR,RMSR,RTPp,
-     1  RTPq,Rep,AREF,AREFp,AREFq,ype,dype,betaINF,yp,yq,fsw,yPOW,XP,
-     2  XPW,DER,TTM,TTMM,DERP,SUM,DSUM,AA,BB,FCT,ULR,ULRe,dULRe,d2ULRe,
-     3  VCN,DDER,T0,T0P,T1,RE3,RE6,RE8,RTP3,RTP6,RTP8,dULRedRe,RDIST,
-     4  C3VAL,C6adj,C9adj
-c-----------------------------------------------------------------------
-      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,q,NS,NL,
+      PARAMETER (MXDATA=1501, MXPARM=50, MXMLR= 8)
+      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
      1                                                        NPHI,SAP
       REAL*8 Re,De,VMIN,RREF,Asw,Rsw,M2,as,bs,RHOd,
      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM)
       COMMON /DATABLK/Re,De,VMIN,RREF,Asw,Rsw,M2,as,bs,
-     1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,q,
+     1  RHOd,CmVAL,RTP,SAS,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,
      2                                                  NS,NL,NPHI,SAP
+c-----------------------------------------------------------------------
+      INTEGER  j,IDAT, NPOW,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,
+     1  JFXVMIN
+      REAL*8  YC,PV(NPARM),PD(NPARM),PS(NPARM),TT(0:20),RHOdR,RMSR,RTPp,
+     1  Rep,AREF,AREFp,ype,dype,betaINF,yp,fsw,yPOW,XP,XPW,DER,TTM,TTMM,
+     2  DERP,SUM,DSUM,AA,BB,FCT,ULR,ULRe,ULRe,dULRe,d2ULRe,VCN,DDER,
+     3  T0,T0P,T1,RE3,RE6,RE8,RTP3,RTP6,RTP8,dULRedRe,RDIST,C3VAL,
+     4  C6adj,C9adj, DEIGM1(1,1),DEIGRe(1,1),DEIGR(1,1)
 c-----------------------------------------------------------------------
       SAVE JFXRe,JFXDe,JFXVMIN, AREF,AREFp,Rep,betaINF,AA,BB, ULRe,
      1  dULRedRe
@@ -977,7 +990,6 @@ c-----------------------------------------------------------------------
               AREF= RREF
               IF(RREF.LE.0.d0) AREF= Re
               AREFp= AREF**p
-              AREFq= AREF**q
               Rep= Re**p
               IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
 c** For Aubert-Frecon based  ULR(r)
@@ -1003,61 +1015,74 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
                       dULRedRe= dULRedRe -RE8*4.d0*(CmVAL(5) 
      1                *(3.d0 + T0P) + CmVAL(6)*(3.d0 - T0P))/(3.d0*Re)
                       ENDIF
-                ELSE
+                   ENDIF
+          IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+c ... extension for Aubert-Frecon 3X3 Li2(c) {3,0,6,6,8,8} case ...
+          CALL AF3X3(RE,CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+     1           DEIGM1,DEIGR,MXMLR)
+                 ULRe=ULR
+                 dULRedRe= DEIGR(1,1)
+ 
+c- temporarily write the derivative of ULR with respect to r at re
+            WRITE(30,901) RE,ULRe,dULRedRe             
+                 ENDIF
+
+  901 FORMAT(3D16.7) 
+
+
 c** For normal inverse-power sum  ULR(r)  ....
-                  ULRe= 0.d0
-                  dULRedRe= 0.d0
-                  DO  j= 1,NCMM
-                      AA= CmVAL(j)/Re**MMLR(j)                  
-                      ULRe= ULRe+ AA
-                      dULRedRe= dULRedRe - MMLR(j)*AA/Re
-                      ENDDO
-                ENDIF
-              betaINF= DLOG(2.d0*De/ULRe)
-              ENDIF
-          RTPp= RDIST**p
-          RTPq= RDIST**q
-          yp= (RTPp - AREFp)/(RTPp + AREFp)
-          yq= (RTPq - AREFq)/(RTPq + AREFq)
-          ype= (RTPp - Rep)/(RTPp + Rep)
-          IF(SAP.GT.0) THEN
+	    IF((NCMM.EQ.1).OR.(MMLR(2).GT.0)) THEN
+              ULRe= 0.d0
+              dULRedRe= 0.d0
+              DO  j= 1,NCMM
+                  AA= CmVAL(j)/Re**MMLR(j)                  
+                  ULRe= ULRe+ AA
+                  dULRedRe= dULRedRe - MMLR(j)*AA/Re
+                  ENDDO
+               ENDIF
+          betaINF= DLOG(2.d0*De/ULRe)
+          ENDIF
+      RTPp= RDIST**p
+      yp= (RTPp - AREFp)/(RTPp + AREFp)
+      ype= (RTPp - Rep)/(RTPp + Rep)
+      IF(SAP.GT.0) THEN
 c*** Case of Pashov natural spline exponent ....
               NPOW= NPHI
 c... Now, use a spline through the exponent values defined by the input
 c    points to generate values of that exponent at the desired
 c    spline-definition points
-              XP= 0.d0
-              DO  J= 1,NPOW
-                  PD(J)= SAS(IDAT,J)
-                  XP= XP + PV(J)*PD(J)
+          XP= 0.d0
+          DO  J= 1,NPOW
+              PD(J)= SAS(IDAT,J)
+              XP= XP + PV(J)*PD(J)
+              ENDDO
+          ENDIF
+      IF(SAP.LE.0) THEN
+c... For conventional case of a constrained polynomial exponent function
+          NPOW= NS+1
+          IF(RDIST.GE.Re) NPOW= NL+1
+          IF(Asw.LE.0.d0) THEN
+              yPOW= 1.d0 - yp
+            ELSE
+              fsw= 1.d0/(dexp(Asw*(RDIST-Rsw)) + 1.d0)
+              yPOW= fsw
+            ENDIF
+          SUM= PV(1)*yPOW
+          DSUM= 0.d0
+          IF(NPOW.GE.2) THEN
+              DO  j= 2,NPOW
+                  IF(RREF.LE.0.d0) DSUM= DSUM + PV(j)*(j-1)*yPOW
+                  yPOW= yPOW*yp
+                  SUM= SUM+ yPOW*PV(j)
                   ENDDO
               ENDIF
-          IF(SAP.LE.0) THEN
-c... For conventional case of a constrained polynomial exponent function
-              NPOW= NS+1
-              IF(RDIST.GE.Re) NPOW= NL+1
-              IF(Asw.LE.0.d0) THEN
-                  yPOW= 1.d0 - yp
-                ELSE
-                  fsw= 1.d0/(dexp(Asw*(RDIST-Rsw)) + 1.d0)
-                  yPOW= fsw
-                ENDIF
-              SUM= PV(1)*yPOW
-              DSUM= 0.d0
-              IF(NPOW.GE.2) THEN
-                  DO  j= 2,NPOW
-                      IF(RREF.LE.0.d0) DSUM= DSUM + PV(j)*(j-1)*yPOW
-                      yPOW= yPOW*yq
-                      SUM= SUM+ yPOW*PV(j)
-                      ENDDO
-                  ENDIF
-              IF(Asw.LE.0.d0) THEN
-                  XP= SUM + betaINF*yp
-                ELSE
-                  XP= SUM + betaINF*(1.d0 - fsw)
-                ENDIF
-              ENDIF
-          IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
+          IF(Asw.LE.0.d0) THEN
+              XP= SUM + betaINF*yp
+            ELSE
+              XP= SUM + betaINF*(1.d0 - fsw)
+            ENDIF
+          ENDIF
+      IF((NCMM.GE.4).AND.(MMLR(2).EQ.0)) THEN
 c** For Aubert-Frecon based  ULR(r)
               RTP3= 1.d0/RDIST**3
               RTP6= RTP3*RTP3
@@ -1071,13 +1096,17 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
               ULR= 0.5d0*( - CmVAL(2) + (1.5d0*CmVAL(1) + (C6adj 
      1            + CmVAL(4))*RTP3)*RTP3) + 0.5d0*T0 + C9adj*RTP3*RTP6
               IF(NCMM.GT.4) ULR= ULR + 0.5d0*(CmVAL(5)+ CmVAL(6))*RTP8
-c... SKIP Re derivative corrections for all?
               T0P= (9.d0*T1-CmVAL(2))/T0
-c             dULRdRe= -RTP3*(0.25d0*CmVAL(1)*(9.d0 + T0P)
-c    1      + RTP3*(CmVAL(3)*(3.d0 + T0P) + CmVAL(4)*(3.d0 - T0P)))/Re
               ENDIF
-          IF((NCMM.LE.1).OR.(MMLR(2).GT.0)) THEN
+           IF((NCMM.GE.4).AND.(MMLR(2).EQ.-1)) THEN
+c ... extension for Aubert-Frecon 3X3 Li2(c) {3,0,6,6,8,8} case ...
+           CALL AF3X3(RDIST,CmVAL,RE,RE3,RE6,C6adj,C9adj,ULR,
+     1           DEIGM1,DEIGR,MXMLR)
+                 ULR=ULR
+c                 dULRdRe= DEIGR(1,1)
+                 ENDIF
 c** For normal inverse-power sum  ULR(r)  ....
+            IF ((NCMM.EQ.1).OR.(MMLR(2).GT.0))THEN
               ULR= 0.d0
               DO  J= 1,NCMM
                   ULR= ULR+ CmVAL(j)/RDIST**MMLR(j)
@@ -1100,7 +1129,7 @@ c... finalize derivative w.r.t. exponent beta-function spline points ...
 c... finalize derivative w.r.t. exponent polynomial coefficient ....
               DO  j= 1,NPOW
                   PD(j)= yPOW
-                  yPOW= yPOW*yq
+                  yPOW= yPOW*yp
                   ENDDO
             ENDIF
 c** If appropriate, also get partial derivative w.r.t. De & VMIN
@@ -1260,7 +1289,7 @@ c=======================================================================
 c=======================================================================
 c** For the case of a  GPEF(p,as,bs)  potential
 c-----------------------------------------------------------------------
-      IF(PSEL.EQ.4) THEN
+       IF(PSEL.EQ.4) THEN
           IF(ABS(IDAT).LE.1) THEN
               JFXVMIN= IFXP(NPHI+1)
               IF(JFXVMIN.LE.0) VMIN= PV(NPHI+1)
@@ -1291,7 +1320,6 @@ c-----------------------------------------------------------------------
               ENDIF 
           ENDIF
 c=======================================================================
-c%%%%%%%
 cc    if(IDAT.eq.1) then
 cc          write(7,700) nparm,(PV(i),i=1,nparm)
 cc          write(7,702)  (i,i=1,min0(5,nparm))
@@ -1301,7 +1329,6 @@ cc700 FORMAT(///' Partial derivatives for',i3,' input parameters:'/
 cc   1  (1P5D16.8))
 cc702 FORMAT('  I    YC   ',5('     PD(',i1,')   ':))
 cc704 format(i3,f9.2,1P5D13.5:/(12x,5d13.5:))
-c%%%%%%%
       RETURN
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
