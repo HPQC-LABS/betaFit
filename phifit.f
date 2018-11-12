@@ -1,5 +1,5 @@
 c***********************************************************************
-c************  Program  PHIFIT_1.1  dated  4 August 2006  **************
+c************  Program  PHIFIT_1.2  dated  25 April 2007  **************
 c***********************************************************************
 c* Program to fit NTP read-in potential fx. values {RTP(i),VTP(i)} to
 c  a chosen analytic form, to determine realistic initial estimates of 
@@ -8,23 +8,23 @@ c** See  http://leroy.uwaterloo.ca/programs/   for further documentation
 c***********************************************************************
       INTEGER MXDATA, MXPARM, MXMLR
       PARAMETER (MXDATA=1501, MXPARM=30, MXMLR= 8)
-      INTEGER i,j,ITER,IROUND,ROBUST,LPRINT,IWR,NPARM,NTP,MMN,
-     1    IFXP(MXPARM)
+      INTEGER i,j,ITER,IROUND,ROBUST,LPRINT,IWR,NPARM,NTP,IFXP(MXPARM)
       REAL*8 PHI(0:MXPARM),PV(MXPARM),PU(MXPARM),PS(MXPARM),
      1  CM(MXPARM,MXPARM),DYDP(MXDATA,MXPARM),VTP(MXDATA),
      2  uVTP(MXDATA),phiy(MXDATA),Uphiy(MXDATA),YD(MXDATA),
      3  phiINF,UNC,yPOW,DSE,TSTPS,TSTPU,DSEB,TT(0:20),RHOdR,RHOp,TTM,
      4  Rep,AREF,AREFp,RTPp, AA,BB,VLR,dVLR,FCT,RAT,UMAX,
-     5  yp,fsw,ypRE,ReDE, ReIN,DeIN,VMINin
+     5  yp,fsw,ypRE,ReDE, ReIN,DeIN,VMINin ,VLRe,RE3,T1,RTP3
       CHARACTER*4  NNAME,NAME(5)
       DATA NAME/' EMO',' MLJ',' MLR','DELR','GPEF'/
 c-----------------------------------------------------------------------
-      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR(MXMLR),p,
-     1                                                      NS,NL,NPHI
-      REAL*8 Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,as,bs,RHOd,CMLR(MXMLR),
-     1  RTP(MXDATA)
-      COMMON /DATABLK/Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,RHOd,as,bs,CMLR,
-     1  RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR,p,NS,NL,NPHI
+      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
+     1                                                            NPHI
+      REAL*8 Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,RHOd,
+     1  CmVAL(MXMLR),RTP(MXDATA)
+      COMMON /DATABLK/Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,
+     1  RHOd,CmVAL,RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,NS,NL,
+     2                                                            NPHI
 c-----------------------------------------------------------------------
       ROBUST= 0
 c-----------------------------------------------------------------------
@@ -65,46 +65,49 @@ c=======================================================================
       ReIN= Re
       DeIN= De
       VMINin= VMIN
-c** For an MLR_p potential (PSEL=2), read the power NCN & coefficient CN
-c   to define limiting long-range potential tail:  V(r)= De - CN/r^NCN
-c ... also read power MCM and ratio RCMCN=Cm/Cn for second long-range term
-c    if  MCM.le.NCN   or  RCMCN.le.0  consider only single term.
+c** For an MLR_p potential (PSEL=2) read number of long-range terms NCMM
+c   to define long-range potential tail:  V(r)= De - \sum{CmVAL/r^MMLR}
 c** To use the switching function  fsw(r)= 1/[exp{Asw*(r-Rsw)} + 1]  form
 c   of exponent coefft  phi(y)= [1-fsw] phi_inf + fsw \sum {phi_i y^i} 
 c   read positive values of Asw and Rsw; otherwise, set them .LE. 0 and
 c        phi(r)= yp phi_inf + [1 - yp] Sum{ phi_i yp^i }
+c** For each long-range term read power  MMLR(i)  & coefficient CmVAL(i)
+c** For special Aubert-Frecon case,  NCMM= 4,  MMLR= {3,0,6,6} and the 
+c  coefficients are:  CmVAL(1)= M^2, CmVAL(2)= ASO, CmVAL(3)= R10, and
+c  CmVAL(4)= R12
 c=======================================================================
-      IF(PSEL.EQ.2) READ(5,*) NCN, CN, MCM, RCMCN, Asw, Rsw
+      IF(PSEL.EQ.2) THEN
+          READ(5,*) NCMM, Asw, Rsw
+          READ(5,*) (MMLR(i), CmVAL(i), i= 1,NCMM)
+          ENDIF
 c=======================================================================
-      IF(RCMCN.LE.0.d0) MCM= 0
       IF(PSEL.EQ.3) THEN
-c* For a DELR potential, NMLR is the number of long-range terms in the
-c  sum  V_{LR}(r)= \sum_m{D_m(r) CMLR(m)/r^m} , where powers are m= MLR
+c* For a DELR potential, NCMM is the number of long-range terms in the
+c  sum  u_{LR}(r)= \sum_i{D_i(r) CmVAL(i)/r^i} , where i= MMLR(i)
 c  and  RHOd  is the scaling factor \rho_d in the damping function.
+c  Attractive terms have positive  CmVAL  values.
 c* If  IDF= 1  use the Tang-Toennies damping function
-c   D_m(r)= 1 - exp{-3.16*RHOd*r} \Sum_{k=0}^{NMLR} (3.16*RHOd*r)**{k}/k!
+c   D_m(r)= 1 - exp{-3.16*RHOd*r} \Sum_{k=0}^{NCMM} (3.16*RHOd*r)**{k}/k!
 c* If  IDF= 2  use the Scoles damping function
 c      D_m(r)= [1 - exp{-3.97(RHOd*r)/m - 0.39(RHOd*r)^2/sqrt(m)]^m
 c Also ...  PHI(0) is the initial trial value of  \phi_0  used to
 c    generate initial trial values of the A & B potential parameters.
 c  * If the read-in  PHI(0) \leq 0.0 , the program uses a preliminary 
 c    EMO_{p} fit to generate an estimate of  PHI(0); this usually works
-c    if  V_{LR} is attractive, so that the potential has no barrier.
+c    if  u_{LR} is attractive, so that the potential has no barrier.
 c  * If the potential has a barrier, one must determine an initial trial
 c    value another way.  A one way would be to do an EMO_{p} fit to the
 c    potential points, treating the barrier maximum as dissociation
 c=======================================================================
-          READ(5,*) NMLR ,RHOd, IDF, PHI(0)
-          DO  j=1, NMLR
-              READ(5,*) MLR(j), CMLR(j)
-              ENDDO
+          READ(5,*) NCMM, RHOd, IDF, PHI(0)
+          READ(5,*) (MMLR(i), CmVAL(i), i= 1, NCMM)
 c=======================================================================
           PHI(0)= 1.d0
           ENDIF
 c** For a GPEF potential, read coefficients to define expansion vble:
 c       y = (r^p - Re^p)/(as*r^p + bs*Re^p)  where  p, as & bs all fixed
 c=======================================================================
-      IF(PSEL.EQ.4) READ(5,*) as,bs 
+      IF(PSEL.EQ.4) READ(5,*) as, bs 
 c=======================================================================
 c** Read the turning points to be fitted to
 c=======================================================================
@@ -112,41 +115,49 @@ c=======================================================================
 c=======================================================================
       IF(PSEL.EQ.1) WRITE(6,600) Re, De
       IF(PSEL.EQ.2) THEN
-          IF(MCM.LE.NCN) THEN
-              NNAME= NAME(2)
-              WRITE(6,602) NAME(2), NCN, Re, De, NCN, CN
-            ELSE
-              NNAME= NAME(3)
-              WRITE(6,602) NAME(3),NCN, Re, De, NCN, CN
-              WRITE(6,609) MCM,MCM,NCN,RCMCN
-            ENDIF
+          NNAME= NAME(2)
+          IF(NCMM.GT.1) NNAME= NAME(3)
+          WRITE(6,602) NNAME, Re, De, (MMLR(i),CmVAL(i),i= 1,NCMM)
+          IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+c** For Lyon treatment of A-state alkali dimers ...
+              WRITE(6,618)
+              M2= CmVAL(1)
+              ASO= CmVAL(2)
+              R01= CmVAL(3)
+              R12= CmVAL(4)
+              ENDIF
           ENDIF
       IF(PSEL.EQ.3) THEN
           RHOp= RHOd
           IF(IDF.EQ.1) RHOd= 3.16d0*RHOd
-          WRITE(6,604) Re, De, RHOp, NMLR,(MLR(j),CMLR(j),j=1, NMLR)
+          WRITE(6,604) Re, De, RHOp, NCMM,(MMLR(j),CmVAL(j),j=1, NCMM)
           ENDIF
       IF(PSEL.EQ.4) WRITE(6,605) as,bs,Re
       WRITE(6,606) NTP,VMIN,UNC,(RTP(i),VTP(i),i= 1,NTP)
       WRITE(6,608)
+      IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+          DO  I= 1,NTP
+              VTP(I)= VTP(I) - 0.5d0*ASO
+              ENDDO
+          ENDIF
+      IF((PSEL.EQ.2).AND.(NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+          ENDIF
 c
   600 FORMAT(' Determine  EMOp  exponent expansion coefficients'/
      1  1x,24('==')/' Start with   Re=',f11.8,'   De=',f11.4)
   601 FORMAT(' Using exponent expansion variable  yp(r)= [r^p -',f6.2,
      `  '^p]/[r^p +',f6.2,'^p]' )
-  602 FORMAT(' Determine ',A4,'p(n=',i2,')  exponent expansion coefficie
-     1nts'/1x,27('==')/' Start with   Re=',f11.8,'   De=',f11.4,'   C',
-     2  i1,'=',1PD15.8)
-  609 FORMAT('    and allows for  C',i1,'  with  C',i1,'/C',i1,' =',
-     1 f8.4)
-  616 FORMAT(' *** Since  p=',i2,' .LE. (MCM-NCN)=',i2,'   OMIT  C',i2,
-     1  '/C',i1,'  constraint')
+  602 FORMAT(' Determine ',A4,'p  exponent expansion coefficients'/1
+     1  x,24('==')/' Start with   Re=',f11.8,'   De=',f11.4,'    C',
+     2  i2,'=',1PD15.8:/(49x,'C',i2,'=',D15.8:))
+  618 FORMAT(4x,'Use Lyon  uLR(r) with   C_0= ASO   C_6(1)= R01',
+     1  '   C_6(2)= R12')
   603 FORMAT(' Use exponent expansion variable  yp(r)= [r^p - Re^p]/[r^p
      1 + Re^p]' )
   604 FORMAT(' Determine  DELRp potential exponent expansion coefficient
      1s'/1x,29('==')/' Start with   Re=',f11.8,'   De=',f11.4,
-     2  '   where   RHOd=',f10.6/5x,'and  V_{LR}  has',i2,
-     3 ' inverse-power terms with coefficients (-ve attractive):'/
+     2  '   where   RHOd=',f10.6/5x,'and  u_{LR}  has',i2,
+     3 ' inverse-power terms with coefficients (+ve attractive):'/
      4  (1x,3('   C_{',i2,'}=',1Pd15.7:)))
   605 FORMAT(' Determine coefficient for a  GPEF{p}  polynomial potentia
      1l using the'/1x,29('==')/' expansion variable:   y= (R^p - Re^p)/(
@@ -183,12 +194,12 @@ c-----------------------------------------------------------------------
       IF((p.LE.0).OR.(NS.LE.0).OR.(NL.LE.0)) GOTO 999
       IF(PSEL.EQ.1) WRITE(6,600) Re, De
       IF(PSEL.EQ.2) THEN
-          WRITE(6,602) NNAME,NCN, Re, De, NCN, CN
+          WRITE(6,602) NNAME, Re, De, (MMLR(i),CmVAL(i),i= 1,NCMM)
           IF(Asw.GT.0.d0) WRITE(6,632) Asw, Rsw
           IF(Asw.LE.0.d0) WRITE(6,634) 
           ENDIF
       IF(PSEL.EQ.3) THEN
-          WRITE(6,604) Re, De, RHOp, NMLR,(MLR(j),CMLR(j),j=1, NMLR)
+          WRITE(6,604) Re, De, RHOp, NCMM,(MMLR(j),CmVAL(j),j=1, NCMM)
           IF(IDF.EQ.1) WRITE(6,614)
           IF(IDF.EQ.2) WRITE(6,612)
           ENDIF
@@ -270,60 +281,78 @@ c-----------------------------------------------------------------------
 c*** Preliminary linearized fit for an  MLRp  potential ...
 c** First define array of exponent values with uncertainties defined by 
 c  the assumption that all potential values have equal uncertainties UNC
-          NNAME= NAME(2)
-          phiINF= DLOG(2.d0*De*Re**NCN/CN)
-          IF(MCM.GT.NCN) THEN
-              IF(p.GT.MCM-NCN) THEN
-                  NNAME= NAME(3)
-                  MMN= MCM - NCN
-                  phiINF= phiINF - DLOG(1.d0 + RCMCN/Re**MMN)
-                  WRITE(6,609) MCM,MCM,NCN,RCMCN
-                ELSE
-                  MMN= 0
-                  WRITE(6,616) p, MCM-NCN, MCM, NCN
-                ENDIF
-              ENDIF
+          NNAME= NAME(3)
+          IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+c** Aubert-Frecon based VLR(r)
+              RE3= Re**3
+              T1= M2/(9.d0*Re3) + (5.d0*R01 + R12)/(45.d0*RE3**2)
+              VLRe= 0.5d0*(M2/RE3 - ASO) + (5.d0*R01 + 8.2d0*R12)
+     1    /(18.d0*RE3**2) + 0.5d0*DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+              WRITE(6,618) ASO,R01,R12
+            ELSE
+c** For normal inverse-power sum MLR/MLJ case
+              IF(NCMM.EQ.1) NNAME= NAME(2)
+              IF(p.LE.(MMLR(NCMM)-MMLR(1))) THEN
+                  WRITE(6,616) p, NCMM,MMLR(NCMM)-MMLR(1)
+                  GOTO 10
+                  ENDIF
+              VLRe= 0.d0
+              DO  i= 1,NCMM
+                  VLRe= VLRe + CmVAL(i)/Re**MMLR(i)
+                  ENDDO
+            ENDIF
+          phiINF= DLOG(2.d0*De/VLRe)
+          WRITE(6,619) phiINF
           Rep= RE**p
           DO  i= 1, NTP
               RTPp= RTP(i)**p
               yp= (RTPp - AREFp)/(RTPp + AREFp)
               ypRE= (RTPp - Rep)/(RTPp + Rep)
+              IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+c... for Aubert-Frecon {3,0,6,6} case ...
+                  RTP3= RTP(i)**3
+                  T1= M2/(9.d0*RTP3)+ (5.d0*R01+R12)/(45.d0*RTP3**2)
+                  VLR= 0.5d0*(M2/RTP3 - ASO) + (5.d0*R01+ 8.2d0*R12)
+     1   /(18.d0*RTP3**2) + 0.5d0*DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+                ELSE
+c... for normal MLR/MLJ case ...
+                  VLR= 0.d0
+                  DO  j= 1, NCMM
+                      VLR= VLR+ CmVAL(j)/RTP(i)**MMLR(j)
+                      ENDDO
+                ENDIF
               IF(RTP(i).GT.Re) THEN
-                  phiy(i)= -NCN*DLOG(RTP(i)/Re) 
-     1                          - DLOG(1.d0 - DSQRT((VTP(i)-VMIN)/De))
+                  phiy(i)= - DLOG((1.d0 - DSQRT((VTP(i)-VMIN)/De))
+     1                                                      *VLRe/VLR)
                   IF((VTP(i)-VMIN).GT.UNC) THEN
-                      Uphiy(i)= 0.5d0*UNC/(DSQRT((VTP(i)-VMIN)*De) 
-     1                                                - (VTP(i)-VMIN))
+                      Uphiy(i)= 0.5d0*UNC
+     1                      /(DSQRT((VTP(i)-VMIN)*De) - (VTP(i)-VMIN))
                     ELSE
                       Uphiy(i)= DSQRT(UNC/De)
                     ENDIF
                 ELSE
-                  phiy(i)= -NCN*DLOG(RTP(i)/Re) 
-     1                          - DLOG(1.d0 + DSQRT((VTP(i)-VMIN)/De))
+                  phiy(i)= - DLOG((1.d0 + DSQRT((VTP(i)-VMIN)/De))
+     1                                                      *VLRe/VLR)
                   IF((VTP(i)-VMIN).GT.UNC) THEN
-                      Uphiy(i)= 0.5d0*UNC/(DSQRT((VTP(i)-VMIN)*De) 
-     1                                                + (VTP(i)-VMIN))
+                      Uphiy(i)= 0.5d0*UNC
+     1                      /(DSQRT((VTP(i)-VMIN)*De) + (VTP(i)-VMIN))
                     ELSE
                       Uphiy(i)= DSQRT(UNC/De)
                     ENDIF
-                
                 ENDIF
-              IF(MMN.GT.0) THEN
-                  phiy(i)= phiy(i) - DLOG(1.d0+ RCMCN/Re**MMN) + 
-     1                                    DLOG(1.d0+ RCMCN/RTP(i)**MMN)
-                  ENDIF
+c** Subtract the \phi_\infty term to yield polynomial for fitting
               IF(Asw.LE.0.d0) THEN
-c** For Huang's MLR exponent function
+c... For Huang's MLR exponent function
                   phiy(i)= phiy(i)- phiINF*yp*ypRE
                   yPOW= ypRE*(1.d0- yp)
                 ELSE
-c** For Photos' origonal MLJ exponent switching function
+c... For Photos' origonal MLJ exponent switching function
                   fsw= 1.d0/(DEXP(Asw*(RTP(i)- Rsw)) + 1.d0)
                   phiy(i)= phiy(i)- phiINF*ypRE*(1.d0 - fsw)
                   yPOW= ypRE*fsw
                   ENDIF
               uVTP(i)= UNC
-c ... first, create partial derivative array for linearized fit ...
+c... then create partial derivative array for linearized fit ...
               DO  j= 1, NPHI
                   DYDP(i,j)= yPOW
                   IF((RTP(i).GT.Re).AND.(j.GT.NL+1)) DYDP(i,j)= 0.d0
@@ -334,6 +363,8 @@ c%%%
 cc    if(i.eq.1) write(8,700) 
 cc            write(8,702) rtp(i),yp,vtp(i),phiy(i),Uphiy(i)
 cc   1                                 ,(dydp(i,j),j=1,nphi)
+c             write(8,800) rtp(i),yp,ypRE,vlr,phiy(i)
+c 800 Format( f7.4,2f12.8,4(1Pd15.7))
 c%%%
               ENDDO
           CALL LLSQF(NTP,NPHI,MXDATA,MXPARM,phiy,Uphiy,DYDP,YD,PV,
@@ -354,15 +385,15 @@ c  First generate  A & B  from input Re, De and trial phi(0)
           dVLR= 0.d0
           IF(IDF.EQ.2) THEN
 c... Using Scoles-type damping function ...
-              DO  j= 1,NMLR
-                  FCT= dexp(-3.97d0*RHOd*Re/MLR(j)
-     1                    - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(MLR(j))))
-                  AA= CMLR(j)*((1.d0- FCT)/Re)**MLR(j)
+              DO  j= 1,NCMM
+                  FCT= dexp(-3.97d0*RHOd*Re/MMLR(j)
+     1                    - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(MMLR(j))))
+                  AA= CmVAL(j)*((1.d0- FCT)/Re)**MMLR(j)
                   VLR= VLR+ AA
-                  dVLR= dVLR- MLR(j)*AA/Re
-                  BB= FCT*(3.97d0*RHOd/MLR(j) 
-     1                      + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(MLR(j))))
-                  dVLR= dVLR+  MLR(j)*BB*AA/(1.d0- FCT)
+                  dVLR= dVLR- MMLR(j)*AA/Re
+                  BB= FCT*(3.97d0*RHOd/MMLR(j) 
+     1                      + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(MMLR(j))))
+                  dVLR= dVLR+  MMLR(j)*BB*AA/(1.d0- FCT)
                   ENDDO
               ENDIF
           IF(IDF.EQ.1) THEN
@@ -370,25 +401,25 @@ c... Using Tang-Toennies damping function ...
               TT(0)= 1.d0
               yPOW= 1.d0
               RHOdR= RHOd*Re
-              DO  j= 1,MLR(NMLR)
+              DO  j= 1,MMLR(NCMM)
                   yPOW= yPOW*RHOdR/DFLOAT(J)
                   TT(J)= TT(J-1)+ yPOW
                   ENDDO
               yPOW= DEXP(-RHOdR)
               VLR= 0.d0
               dVLR= 0.d0
-              DO  j= 1,NMLR
-                  TTM= (1.d0- yPOW*TT(MLR(j)))*CMLR(j)/Re**MLR(j)
+              DO  j= 1,NCMM
+                  TTM= (1.d0- yPOW*TT(MMLR(j)))*CmVAL(j)/Re**MMLR(j)
                   VLR= VLR+ TTM
-		      dVLR= dVLR+ yPOW*RHOd*(TT(MLR(j)) - TT(MLR(j)-1))
-     1                             *CMLR(j)/Re**MLR(j) - MLR(j)*TTM/Re
+		      dVLR= dVLR+ yPOW*RHOd*(TT(MMLR(j)) - TT(MMLR(j)-1))
+     1                          *CmVAL(j)/Re**MMLR(j) - MMLR(j)*TTM/Re
                   ENDDO
               ENDIF
-          AA= De + VLR + dVLR/phi(0)
-          BB= 2.d0*(De+ VLR) + dVLR/phi(0)
+          AA= De - VLR - dVLR/phi(0)
+          BB= 2.d0*(De - VLR) - dVLR/phi(0)
           WRITE(6,607) AA,BB
           RAT= 0.5d0*BB/AA
-          UMAX= DSQRT(RAT**2 + (UNC- VLR- DE)/AA)
+          UMAX= DSQRT(RAT**2 + (UNC + VLR - DE)/AA)
           ReDE= Re- dlog(RAT)/phi(0)
           DO  i= 1,NTP
               VLR= 0.d0
@@ -396,10 +427,10 @@ c... Using Tang-Toennies damping function ...
               yp= (RTPp - AREFp)/(RTPp + AREFp)
               IF(IDF.EQ.2) THEN
 c... if using Scoles damping function ...
-                  DO  j= 1,NMLR
-                      FCT= dexp(-3.97d0*RHOd*RTP(i)/MLR(j)
-     1                - 0.39d0*(RHOd*RTP(i))**2/DSQRT(DFLOAT(MLR(j))))
-                      VLR= VLR+ CMLR(j)*((1.d0-FCT)/RTP(i))**MLR(j)
+                  DO  j= 1,NCMM
+                      FCT= dexp(-3.97d0*RHOd*RTP(i)/MMLR(j)
+     1               - 0.39d0*(RHOd*RTP(i))**2/DSQRT(DFLOAT(MMLR(j))))
+                      VLR= VLR+ CmVAL(j)*((1.d0-FCT)/RTP(i))**MMLR(j)
                       ENDDO
                   ENDIF
               IF(IDF.EQ.1) THEN
@@ -407,15 +438,16 @@ c... if using Tang-Toennies damping function ...
                   RHOdR= RHOd*RTP(i)
                   yPOW= DEXP(-RHOdR)
                   TT(0)= yPOW
-                  DO  j= 1,MLR(NMLR)
+                  DO  j= 1,MMLR(NCMM)
                       yPOW= yPOW*RHOdR/DFLOAT(J)
                       TT(J)= TT(J-1)+ yPOW
                       ENDDO
-                  DO  j=1,NMLR
-                      VLR= VLR+CMLR(j)*(1.d0-TT(MLR(j)))/RTP(i)**MLR(j)
+                  DO  j=1,NCMM
+                      VLR= VLR+CmVAL(j)*(1.d0-TT(MMLR(j)))/
+     1                                                 RTP(i)**MMLR(j)
                       ENDDO
                   ENDIF
-              FCT= (VTP(i)-VMIN-VLR-De)/AA + RAT**2
+              FCT= (VTP(i) - VMIN + VLR - De)/AA + RAT**2
               IF(FCT.LT.0.d0) THEN
 c** If estimate of ReDE off a bit and  FCT < 0 , ignore & deweight point
                     phiy(i)= 0.d0
@@ -496,7 +528,7 @@ c* FIRST optimize  PHI(j)'s (and VMIN) with  Re and De held fixed!
               IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
      1                                (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
               IF(IFXVMIN.LE.0)
-     1                   WRITE(6,630) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
+     1                   WRITE(6,660) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
               ENDIF
 c ... the, if appropriate, set  Re  free too ...
           IF(IFXRe.LE.0) THEN
@@ -509,9 +541,9 @@ c ... the, if appropriate, set  Re  free too ...
      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
-                  WRITE(6,626) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
+                  WRITE(6,662) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
                   IF(IFXVMIN.LE.0)
-     1                   WRITE(6,630) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
+     1                   WRITE(6,660) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
                   ENDIF
               ENDIF
 c ... then with Re fixed again, free De & VMIN (as well as the phi's)
@@ -531,11 +563,11 @@ c ... then with Re fixed again, free De & VMIN (as well as the phi's)
                   IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
                   IF(IFXRe.LE.0) 
-     1                WRITE(6,626) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
+     1                WRITE(6,662) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
                   IF(IFXDe.LE.0)
      1                WRITE(6,628) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
                   IF(IFXVMIN.LE.0)
-     1                WRITE(6,630) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
+     1                WRITE(6,660) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
                   ENDIF
               ENDIF
 c ... and finally ... fit to all three of  VMIN, De and Re
@@ -552,9 +584,9 @@ c ... and finally ... fit to all three of  VMIN, De and Re
           IF(RREF.LE.0.d0) WRITE(6,624) NNAME,p,NS,NL,DSE,
      1                               (j-1,PV(j),PU(j),PS(j),j=1,NPHI)
           IF(PSEL.EQ.3) PHI(0)= PV(1)
-          WRITE(6,626) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
+          WRITE(6,662) PV(NPHI+1),PU(NPHI+1),PS(NPHI+1)
           WRITE(6,628) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
-          WRITE(6,630) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
+          WRITE(6,660) PV(NPHI+3),PU(NPHI+3),PS(NPHI+3)
           IF(IFXRe.LE.0) Re= PV(NPHI+1)
           IF(IFXDe.LE.0) De= PV(NPHI+2)
           IF(IFXVMIN.LE.0) VMIN= PV(NPHI+3)
@@ -595,7 +627,7 @@ c.... first, do fully linearized fit to get trial expansion coefficients
               IF(IWR.GT.0) THEN
                   WRITE(6,620) NNAME,p,NS,NL,DSE,
      1                         ('  c',j-1,PV(j),PU(j),PS(j),j= 1,NPHI)
-                  IF(IFXVMIN.LE.0) WRITE(6,630) PV(NPHI+1),PU(NPHI+1),
+                  IF(IFXVMIN.LE.0) WRITE(6,660) PV(NPHI+1),PU(NPHI+1),
      1                                                      PS(NPHI+1)
                   ENDIF
 c.... then, proceed with fit to non-linear form
@@ -608,11 +640,11 @@ c... If Re is to be free, first optimize it in fit to initial form
      1                   IFXP,VTP,uVTP,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
                   IF(IWR.GT.0) THEN
                       WRITE(6,636) 
-                      WRITE(6,650) p,as,bs,DSE,(i-1,PV(i),PU(i),PS(i),
+                      WRITE(6,658) p,as,bs,DSE,(i-1,PV(i),PU(i),PS(i),
      1                                                       i=1,NPHI)
-                      IF(IFXVMIN.LE.0) WRITE(6,630) PV(NPHI+1),
+                      IF(IFXVMIN.LE.0) WRITE(6,660) PV(NPHI+1),
      1                                           PU(NPHI+1),PS(NPHI+1)
-                      WRITE(6,626) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
+                      WRITE(6,662) PV(NPHI+2),PU(NPHI+2),PS(NPHI+2)
                       ENDIF
                   ENDIF
               IF(NPHI.GE.2) THEN
@@ -624,18 +656,21 @@ c ... IFXDe is a flag indicating fit to final  c0*y**2(1 + c1*y + ... )
               IFXDe= 0
               CALL NLLSSRR(NTP,NPARM,MXPARM,IROUND,ROBUST,LPRINT,IFXP,
      1                        VTP,uVTP,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
-              WRITE(6,650) p,as,bs,DSE,(i-1,PV(i),PU(i),PS(i),i=1,NPHI)
-              IF(IFXVMIN.LE.0) WRITE(6,630) PV(NPHI+1),PU(NPHI+1),
+              WRITE(6,658) p,as,bs,DSE,(i-1,PV(i),PU(i),PS(i),i=1,NPHI)
+              IF(IFXVMIN.LE.0) WRITE(6,660) PV(NPHI+1),PU(NPHI+1),
      1                                                     PS(NPHI+1)
-              IF(IFXRE.LE.0) WRITE(6,626) PV(NPHI+2),PU(NPHI+2),
+              IF(IFXRE.LE.0) WRITE(6,662) PV(NPHI+2),PU(NPHI+2),
      1                                                     PS(NPHI+2)
               ENDDO
           ENDIF
       WRITE(6,608)
       GOTO 10
 c-----------------------------------------------------------------------
-  620 FORMAT(/' Linearized ',A4,'{p=',i1,'} fit with   NS=',i2,'   NL='
-     1 ,i2,'   yields   DSE=',1Pd9.2/(4x,a3,'_{',i2,'} =',d17.9,
+  616 FORMAT(//' *** Since  p=',i2,' .LE. [MMLR(',i1,')-MMLR(1)]=',i2,
+     1  '  STOP !!!!!! ******')
+  619 FORMAT(' Linearized fit uses    phi(INF)=',f10.6)
+  620 FORMAT(/' Linearized ',A4,'{p=',i1,'} fit with   NS=',i2,'   NL=',
+     1 i2,'   yields   DSE=',1Pd9.2/(4x,a3,'_{',i2,'} =',d17.9,
      2 ' (+/-',d8.1,')   PS=',d8.1))
   622 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,' ; NS=',i2,
      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
@@ -643,9 +678,7 @@ c-----------------------------------------------------------------------
   624 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref= Re ; NS=',i2,
      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/
      2  ('    phi_{',i2,'} =',d17.9,' (+/-',d8.1,')   PS=',d8.1))
-  626 FORMAT(10x,'Re =',f13.9,' (+/-',f12.9,')   PS=',1pd8.1)
   628 FORMAT(10x,'De =',f13.6,' (+/-',f12.6,')   PS=',1pd8.1)
-  630 FORMAT(8x,'VMIN =',f13.7,' (+/-',f12.6,')   PS=',1pd8.1)
   632 FORMAT(' Use exponent switching function with   Asw=',F9.6,
      1  '   Rsw=',F9.6)
   634 FORMAT(' Use Huang exponent function:  phi(R)= phiINF*y_p + (1-y_p
@@ -657,11 +690,13 @@ c-----------------------------------------------------------------------
   646 FORMAT(' !!! CAUTION !!! Iteration to optimize  phi(0)  not conver
      1ged after',i3,' tries')
   648 FORMAT('   Converge on   phi_0=',f9.6,'   Next change=',1Pd9.1)
-  650 FORMAT(/' Fit to GPEF{p=',i1,'} potential with   As=',F5.2,
-     1  '   Bs=',F5.2,'   yields   DSE=',1Pd9.2/
-     2  (6x,'c_{',i2,'} =',d17.9,' (+/-',d8.1,')   PS=',d8.1))
   654 FORMAT(/' *** PROBLEM *** freeing De makes DSE increase from',
      1  1PD9.2,' to',D9.2)
+  658 FORMAT(/' Fit to GPEF{p=',i1,'} potential with   As=',F5.2,
+     1  '   Bs=',F5.2,'   yields   DSE=',1Pd9.2/
+     2  (6x,'c_{',i2,'} =',d17.9,' (+/-',d8.1,')   PS=',d8.1))
+  660 FORMAT(8x,'VMIN =',f13.7,' (+/-',f12.6,')   PS=',1pd8.1)
+  662 FORMAT(10x,'Re =',f13.9,' (+/-',f12.9,')   PS=',1pd8.1)
   999 STOP
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
@@ -670,20 +705,23 @@ c***********************************************************************
       SUBROUTINE DYIDPJ(IDAT,NDATA,NPARM,IFXP,YC,PV,PD,PS,RMSR)
       INTEGER MXDATA, MXPARM, MXMLR
       PARAMETER (MXDATA=1501, MXPARM=30, MXMLR= 8)
-      INTEGER  j,IDAT, NPOW,NPARM,NDATA,MMN, IFXP(MXPARM),JFXRe,JFXDe,
+      INTEGER  j,IDAT, NPOW,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,
      1  JFXVMIN
       REAL*8  YC,PV(NPARM),PD(NPARM),PS(NPARM),TT(0:20),RHOdR,RMSR,RTPp,
      1  Rep,AREF,AREFp,ype,dype,phiINF,yp,fsw,yPOW,XP,XPW,DER,TTM,TTMM,
-     2  DERP,SUM,DSUM,AA,BB,FCT,VLR,VLRe,dVLRe,d2VLRe,VCN,DDER
+     2  DERP,SUM,DSUM,AA,BB,FCT,VLR,VLRe,dVLRe,d2VLRe,VCN,DDER, T0,T1,
+     3  RE3,RTP3,dVLRedRe
 c-----------------------------------------------------------------------
-      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR(MXMLR),p,
-     1                                                      NS,NL,NPHI
-      REAL*8 Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,as,bs,RHOd,CMLR(MXMLR),
-     1  RTP(MXDATA)
-      COMMON /DATABLK/Re,De,VMIN,RREF,CN,RCMCN,Asw,Rsw,RHOd,as,bs,CMLR,
-     1  RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCN,MCM,NMLR,MLR,p,NS,NL,NPHI
+      INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR(MXMLR),p,NS,NL,
+     1                                                            NPHI
+      REAL*8 Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,RHOd,
+     1  CmVAL(MXMLR),RTP(MXDATA)
+      COMMON /DATABLK/Re,De,VMIN,RREF,Asw,Rsw,M2,ASO,R01,R12,as,bs,
+     1  RHOd,CmVAL,RTP,PSEL,IFXRe,IFXDe,IFXVMIN,IDF,NCMM,MMLR,p,NS,NL,
+     2                                                            NPHI
 c-----------------------------------------------------------------------
-      SAVE JFXRe,JFXDe,JFXVMIN,MMN, AREF,AREFp,Rep,phiINF,AA,BB
+      SAVE JFXRe,JFXDe,JFXVMIN, AREF,AREFp,Rep,phiINF,AA,BB, VLRe,
+     1  dVLRedRe
 c=======================================================================
 c** NOTE BENE(!!) for non-linear fits, need to be sure that the
 c  calculations of YC and PD(j) are based on the current UPDATED PV(j)
@@ -754,12 +792,27 @@ c-----------------------------------------------------------------------
               IF(RREF.LE.0.d0) AREF= Re
               AREFp= AREF**p
               Rep= Re**p
-              phiINF= DLOG(2.d0*De*Re**NCN/CN)
-              IF(MCM.GT.NCN) THEN
-                  MMN= MCM - NCN
-                  IF(p.LE.MMN) MMN= 0
-                  IF(MMN.GT.0) phiINF= phiINF- DLOG(1.d0+ RCMCN/Re**MMN)
-                  ENDIF
+              IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+c** For Aubert-Frecon based  uLR(r)
+                  RE3= Re**3
+                  T1= M2/(9.d0*Re3)+ (5.d0*R01+ R12)/(45.d0*RE3**2)
+                  T0= DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+                  VLRe= 0.5d0*(M2/RE3 - ASO) + 0.5d0*T0  
+     1                         + (5.d0*R01 + 8.2d0*R12)/(18.d0*RE3**2)
+                  dVLRedRe= (-1.5d0*M2 - (5.d0*R01 + 8.2d0*R12)
+     1                        /(3.d0*RE3) - 0.5d0*((9.d0*T1- ASO)/T0)*
+     2        (M2/3.d0 + (10.d0*R01 + 2.d0*R12)/(15.d0*Re3)))/(Re3*Re)
+                ELSE
+c** For normal inverse-power sum  uLR(r)  ....
+                  VLRe= 0.d0
+                  dVLRedRe= 0.d0
+                  DO  j= 1,NCMM
+                      AA= CmVAL(j)/Re**MMLR(j)                  
+                      VLRe= VLRe+ AA
+                      dVLRedRe= dVLRedRe - MMLR(j)*AA/Re
+                      ENDDO
+                ENDIF
+              phiINF= DLOG(2.d0*De/VLRe)
               ENDIF
           RTPp= RTP(IDAT)**p
           yp= (RTPp - AREFp)/(RTPp + AREFp)
@@ -786,9 +839,20 @@ c-----------------------------------------------------------------------
             ELSE
               XP= SUM + phiINF*(1.d0 - fsw)
             ENDIF
-          XPW= DEXP(-XP*ype) * (Re/RTP(IDAT))**NCN
-          IF(MMN.GT.0) XPW= XPW*(1.d0 + RCMCN/RTP(IDAT)**MMN)/
-     1                                           (1.d0 + RCMCN/Re**MMN)
+          IF((NCMM.EQ.4).AND.(MMLR(2).EQ.0)) THEN
+c** For Aubert-Frecon based  uLR(r)
+              RTP3= RTP(IDAT)**3
+              T1= M2/(9.d0*RTP3) + (5.d0*R01+R12)/(45.d0*RTP3**2)
+              VLR= 0.5d0*M2/RTP3 + (5.d0*R01 + 8.2d0*R12)
+     1       /(18.d0*RTP3**2) + 0.5d0*DSQRT((T1- ASO)**2 + 8.d0*T1**2)
+            ELSE
+c** For normal inverse-power sum  uLR(r)  ....
+              VLR= 0.d0
+              DO  J= 1,NCMM
+                  VLR= VLR+ CmVAL(j)/RTP(IDAT)**MMLR(j)
+                  ENDDO
+            ENDIF
+          XPW= DEXP(-XP*ype) * VLR/VLRe
           YC= De*(1.d0 - XPW)**2 + VMIN
           DER= 2.d0*De*(1.d0- XPW)*XPW
           IF(Asw.LE.0.d0) THEN
@@ -819,15 +883,13 @@ c ... either for Huang exponent function ...
                     ELSE
                       DSUM= 0.d0
                     ENDIF
-                  yPOW= NCN
-                  IF(MMN.GT.0) yPOW= yPOW+ MMN*RCMCn/(Re**MMN + RCMCN)
-                  PD(NPHI+1)= DER*((ype*yp*yPOW- yPOW)/Re + 
-     1                                           dype*(XP + ype*DSUM))
+                  PD(NPHI+1)= DER*(dype*(XP + ype*DSUM) 
+     1                               + (1.d0 - ype*yp)*dVLRedRe/VLRe )
                 ELSE
 c ... or for Hajigeorgiou exponent function ...
                   IF(RREF.GT.0.d0) DSUM= 0.d0
-                  PD(NPHI+1)= DER*((ype*(1.d0- fsw)*NCN- NCN)/Re +
-     1                                           dype*(XP + ype*DSUM))
+                  PD(NPHI+1)= DER*((ype*(1.d0- fsw)*MMLR(1)
+     1                           - MMLR(1))/Re + dype*(XP + ype*DSUM))
                 ENDIF
               ENDIF
           ENDIF
@@ -850,20 +912,20 @@ c-----------------------------------------------------------------------
 c** Evaluate VLR & its first 2 deriv. at  Re ... 
               IF(IDF.EQ.2) THEN
 c... if using Scoles' damping function ...
-                  DO  j= 1,NMLR
-                      FCT= dexp(-3.97d0*RHOd*Re/MLR(j)
-     1                    - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(MLR(j))))
-                      VCN= CMLR(j)*((1.d0- FCT)/Re)**MLR(j)
+                  DO  j= 1,NCMM
+                      FCT= dexp(-3.97d0*RHOd*Re/MMLR(j)
+     1                   - 0.39d0*(RHOd*Re)**2/DSQRT(DFLOAT(MMLR(j))))
+                      VCN= CmVAL(j)*((1.d0- FCT)/Re)**MMLR(j)
                       VLRe= VLRe+ VCN
-                      dVLRe= dVLRe- MLR(j)*VCN/Re
-                      DDER= FCT*(3.97d0*RHOd/MLR(j)
-     1                      + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(MLR(j))))
-                      dVLRe= dVLRe+  MLR(j)*DDER*VCN/(1.d0- FCT)
-                      d2VLRe= d2VLRe + MLR(j)*(MLR(j)+1)*VCN/Re**2
-     1                     - 2.d0*MLR(j)**2 *DDER*VCN/((1.d0- FCT)*Re)
-     2                    + ((MLR(j)-1)*DDER**2 - DDER*(1.d0- FCT)/FCT
-     3         + (1.d0- FCT)*FCT*0.78d0*RHOd**2/DSQRT(DFLOAT(MLR(j))))
-     4                                      *MLR(j)*VCN/(1.d0- FCT)**2
+                      dVLRe= dVLRe- MMLR(j)*VCN/Re
+                      DDER= FCT*(3.97d0*RHOd/MMLR(j)
+     1                     + 0.78d0*Re*RHOd**2/DSQRT(DFLOAT(MMLR(j))))
+                      dVLRe= dVLRe+  MMLR(j)*DDER*VCN/(1.d0- FCT)
+                      d2VLRe= d2VLRe + MMLR(j)*(MMLR(j)+1)*VCN/Re**2
+     1                    - 2.d0*MMLR(j)**2 *DDER*VCN/((1.d0- FCT)*Re)
+     2                   + ((MMLR(j)-1)*DDER**2 - DDER*(1.d0- FCT)/FCT
+     3        + (1.d0- FCT)*FCT*0.78d0*RHOd**2/DSQRT(DFLOAT(MMLR(j))))
+     4                                     *MMLR(j)*VCN/(1.d0- FCT)**2
                       ENDDO
                   ENDIF
               IF(IDF.EQ.1) THEN
@@ -871,7 +933,7 @@ c... Using Tang-Toennies damping function ...
                   TT(0)= 1.d0
                   yPOW= 1.d0
                   RHOdR= RHOd*Re
-                  DO  j= 1,MLR(NMLR)
+                  DO  j= 1,MMLR(NCMM)
                       yPOW= yPOW*RHOdR/DFLOAT(J)
                       TT(J)= TT(J-1)+ yPOW
                       ENDDO
@@ -879,20 +941,20 @@ c... Using Tang-Toennies damping function ...
                   VLRe= 0.d0
                   dVLRe= 0.d0
                   d2VLRe= 0.d0
-                  DO  j= 1,NMLR
-                      TTM= (1.d0- yPOW*TT(MLR(j)))*CMLR(j)/Re**MLR(j)
+                  DO  j= 1,NCMM
+                      TTM= (1.d0- yPOW*TT(MMLR(j)))*CmVAL(j)/Re**MMLR(j)
                       VLRe= VLRe+ TTM
-                      TTMM= yPOW*RHOd*(TT(MLR(j)) - TT(MLR(j)-1))
-     1                             *CMLR(j)/Re**MLR(j)
-                      dVLRe= dVLRe+ TTMM - MLR(j)*TTM/Re
-                      d2VLRe= d2VLRe + MLR(j)*(MLR(j)+1)*TTM/Re**2
-     1                 + yPOW*RHOd**2*(-TT(MLR(j)) + 2.d0*TT(MLR(j)-1)
-     2                           -TT(MLR(j)-2))  - 2.d0*MLR(j)*TTMM/Re
+                      TTMM= yPOW*RHOd*(TT(MMLR(j)) - TT(MMLR(j)-1))
+     1                                           *CmVAL(j)/Re**MMLR(j)
+                      dVLRe= dVLRe+ TTMM - MMLR(j)*TTM/Re
+                      d2VLRe= d2VLRe + MMLR(j)*(MMLR(j)+1)*TTM/Re**2
+     1               + yPOW*RHOd**2*(-TT(MMLR(j)) + 2.d0*TT(MMLR(j)-1)
+     2                         -TT(MMLR(j)-2))  - 2.d0*MMLR(j)*TTMM/Re
                       ENDDO
                   ENDIF
 c-----------------------------------------------------------------------
-              AA= De + VLRe + dVLRe/PV(1)
-              BB= 2.d0*(De+ VLRe) + dVLRe/PV(1)
+              AA= De - VLRe - dVLRe/PV(1)
+              BB= 2.d0*(De - VLRe) - dVLRe/PV(1)
               ENDIF
           RTPp = RTP(IDAT)**p
           yp= (RTPp - AREFp)/(RTPp + AREFp)
@@ -900,10 +962,10 @@ c-----------------------------------------------------------------------
 c ... evaluate VLR at the actual distance ...
           IF(IDF.EQ.2) THEN
 c... if using Scoles' damping function ...
-              DO  j= 1,NMLR
-                  FCT= dexp(-3.97d0*RHOd*RTP(IDAT)/MLR(j)
-     1             - 0.39d0*(RHOd*RTP(IDAT))**2/DSQRT(DFLOAT(MLR(j))))
-                  VLR= VLR+ CMLR(j)*((1.d0- FCT)/RTP(IDAT))**MLR(j)
+              DO  j= 1,NCMM
+                  FCT= dexp(-3.97d0*RHOd*RTP(IDAT)/MMLR(j)
+     1             - 0.39d0*(RHOd*RTP(IDAT))**2/DSQRT(DFLOAT(MMLR(j))))
+                  VLR= VLR+ CmVAL(j)*((1.d0- FCT)/RTP(IDAT))**MMLR(j)
                   ENDDO
               ENDIF
           IF(IDF.EQ.1) THEN
@@ -911,12 +973,12 @@ c... if using Tang-Toennies damping function ...
               RHOdR= RHOd*RTP(IDAT)
               yPOW= DEXP(-RHOdR)
               TT(0)= yPOW
-              DO  j= 1,MLR(NMLR)
+              DO  j= 1,MMLR(NCMM)
                   yPOW= yPOW*RHOdR/DFLOAT(J)
                   TT(J)= TT(J-1)+ yPOW
                   ENDDO
-              DO  j=1,NMLR
-                  VLR= VLR+CMLR(j)*(1.d0-TT(MLR(j)))/RTP(IDAT)**MLR(j)
+              DO  j=1,NCMM
+                  VLR=VLR+CmVAL(j)*(1.d0-TT(MMLR(j)))/RTP(IDAT)**MMLR(j)
                   ENDDO
               ENDIF
           NPOW= NS+1
@@ -932,14 +994,14 @@ c... if using Tang-Toennies damping function ...
                   ENDDO
               ENDIF
           XP= DEXP(-SUM*(RTP(IDAT)- Re))
-          YC= (AA*XP - BB)*XP + De + VLR + VMIN
+          YC= (AA*XP - BB)*XP + De - VLR + VMIN
           DER= XP*(BB - 2.d0*AA*XP)
           DERP= DER*(RTP(IDAT)- Re)
           DO  j= 1,NPOW
               PD(j)= DERP
               DERP= DERP*yp
               ENDDO
-          PD(1)= PD(1)- XP*(XP-1.d0)*dVLRe/PV(1)**2
+          PD(1)= PD(1) + XP*(XP-1.d0)*dVLRe/PV(1)**2
 c** If appropriate, also get partial derivative w.r.t. De & VMIN
           IF(JFXDe.LE.0) PD(NPHI+2)= (XP - 2.d0)*XP + 1.d0
           IF(JFXVMIN.LE.0) PD(NPHI+3)= 1.d0
@@ -950,8 +1012,8 @@ c** If appropriate, also get partial derivative w.r.t. Re
                 ELSE
                   DSUM= -DSUM*0.5d0*(p/Re)*(1.d0-yp**2)
                 ENDIF
-              PD(NPHI+1)= DER*(DSUM - SUM) + XP*((XP- 2.d0)*dVLRe 
-     1                                       + (XP-1.d0)*D2VLRe/PV(1))
+              PD(NPHI+1)= DER*(DSUM - SUM) - XP*((XP- 2.d0)*dVLRe 
+     1                                       - (XP-1.d0)*D2VLRe/PV(1))
               ENDIF
           ENDIF
 c=======================================================================
@@ -1289,6 +1351,7 @@ ccc               WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),J=1,NPTOT)
               GOTO 10
               ENDIF
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 c========End of core linear least-squares step==========================
 c ... early exit if Rounding cycle finished ... 
           IF(QUIT.GT.0) GO TO 54
@@ -1615,45 +1678,6 @@ c  Statistics, UW),
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
-c     SUBROUTINE DYIDPJ(I,NDATA,NPTOT,IFXP,UU,PV,PD,PS,RMSR)
-c** Illustrative dummy version of DYIDPJ for the case of a fit to a
-c  power series of order (NPTOT-1) in X(i). ***  For datum number-i, 
-c  calculate and return  PD(j)=[partial derivatives of datum-i] w.r.t. 
-c  each of the free polynomial coefficients varied in the fit 
-c  (for j=1 to NPTOT).  **  Elements of the integer array IFXP indicate
-c  whether parameter j is being held fixed [IFXP(j) > 0] or varied in
-c  the fit [IFXP(j).le.0].  If the former, the partial derivative 
-c  for parameter j should be  PD(j)= 0.0. 
-c* NOTE that  NDATA, PS and RMSR are useful for cases in which
-c  derivatives-by-differences are generated (as for BCONT).
-c=====================================================================
-c** Use COMMON block(s) to bring in values of the independent variable 
-c  [here XX(i)] and any other parameters or variables needeed to
-c  calculate YC and the partial derivatives. 
-c=====================================================================
-c     INTEGER  I,J,NDATA,NPTOT,MXDATA,IFXP(NPTOT)
-c     PARAMETER  (MXDATA= 501)
-c     REAL*8  RMSR,YC,PV(NPTOT),PD(NPTOT),PS(NPTOT),POWER,XX(MXDATA)
-c     COMMON /DATABLK/XX
-c=====================================================================
-c** NOTE BENE(!!) for non-linear fits, need to be sure that the
-c  calculations of YC and PD(j) are based on the current UPDATED PV(j)
-c  values.  If other (than PV) parameter labels are used internally
-c  in the calculations, UPDATE them whenever (say)  I = 1 .
-c=====================================================================
-c     POWER= 1.D0
-c     YC= PV(1)
-c     PD(1)= POWER
-c     DO 10 J= 2,NPTOT
-c         POWER= POWER*XX(I)
-c         YC= YC+ PV(J)*POWER
-c         PD(J)= POWER
-c  10     CONTINUE
-c     RETURN
-c     END
-c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
-
-c***********************************************************************
       SUBROUTINE LLSQF(NDATA,NPARM,MXDATA,MXPARM,YO,YU,DYDP,YD,PV,PU,PS,
      1                 CM,DSE)
 c**  Program for performing linear least squares fits using orthogonal 
@@ -1704,7 +1728,7 @@ c             CM   as a square matrix with column & row length  MXPARM
 c  Authors: Robert J. Le Roy  &  Michael Dulick, Department of Chemistry
 c    U. of Waterloo, Waterloo, Ontario  N2L 3G1.    Version of: 07/10/00
 c***********************************************************************
-      INTEGER I,J,K,L,M,IDF,NDATA,MXDATA,NPARM,MXPARM
+      INTEGER I,J,K,L,IDF,NDATA,MXDATA,NPARM,MXPARM
       REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPARM), PU(NPARM), 
      1   PS(NPARM), DYDP(MXDATA,NPARM), CM(MXPARM,MXPARM), DSE,
      2   PX(60), F95(10), TFACT, S, U
