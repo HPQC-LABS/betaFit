@@ -1,5 +1,8 @@
-      SUBROUTINE AF3X3(RDIST,CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
+      SUBROUTINE AF3x3ret(RDIST,CmVAL,RE,De,RE3,RE6,C6adj,C9adj,ULR,
      1 DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe,MXMLR)
+
+
+
 
       REAL*8          H(3,3),DM1(3,3),DM3(3,3),DM5(3,3),DR(3,3),DDe(3,3)
       REAL*8           Q(3,3),CmVAL(MXMLR)
@@ -11,6 +14,7 @@
       REAL*8           RESID(3,1)
 
       REAL*8           M1,M2,M3,M5
+      REAL*8           RET,RETSig,RETPi
 
       INTEGER          I,J,L,K
       INTEGER          ISTATE,MXMLR
@@ -25,6 +29,13 @@ c M2 = C6sigma, M3 = C6 adj
       M3 = C6adj
       M5 = CmVAL(5)
       DELTAE = CmVAL(2)
+
+c I think ret should be 9. instead of 8. (see leroy's version)
+      RET= 8.364128d-4*RE
+      RETSig= DCOS(RET) + (RET)*DSIN(RET)
+      RETPi= RETSig - RET**2 *DCOS(RET)
+
+
 
 c WRITE(25,*) 'Variables = "r", "U(r)","U(r)-U(r)^2/(4De)" ' 
 c WRITE(25,*) 'zone T = "U(r)"'
@@ -93,7 +104,7 @@ c WRITE(25,*) 'zone T = "U(r)"'
        DDe(3,2)=DDe(2,3)
        DDe(3,3)=0.D0
 
-            CALL ZHEEVJ3(H,Q,W,RDIST,M1,M2,M3,M5,De,DELTAE)
+            CALL ZHEEVJ3(H,Q,W,RDIST,M1,M2,M3,M5,De,DELTAE,RETSig,RETPi)
 	     
 	    L=1
 	    DO J=2,3
@@ -108,7 +119,7 @@ c WRITE(25,*) 'zone T = "U(r)"'
 		EIGVEC(I,1) = Q(I,L)
 	    ENDDO	
 
-   30       DEIGM1 =- MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM1,EIGVEC))           
+   30       DEIGM1 =- MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM1,EIGVEC))    
    40       DEIGR   =- MATMUL(TRANSPOSE(EIGVEC),MATMUL(DR,EIGVEC))
    50       DEIGDe = - MATMUL(TRANSPOSE(EIGVEC),MATMUL(DDe,EIGVEC))
 
@@ -125,10 +136,10 @@ c
       CONTAINS
 
 * ----------------------------------------------------------------------------
-      SUBROUTINE ZHEEVJ3(H,Q,W,RDIST,M1,M2,M3,M5,De,DELTAE)
+      SUBROUTINE ZHEEVJ3(H,Q,W,RDIST,M1,M2,M3,M5,De,DELTAE,RETSig,RETPi)
  
 * ----------------------------------------------------------------------------
-      REAL*8           RDIST,M1,M2,M3,M5,De,DELTAE
+      REAL*8           RDIST,M1,M2,M3,M5,De,DELTAE,RETSig,RETPi
 
       REAL*8           H(3,3),Q(3,3)
       DOUBLE PRECISION W(3)
@@ -153,15 +164,16 @@ c
 
 * initialize matrix elements
  
-       H(1,1)=-(1.D0/3.D0)*(M1/(RDIST**3)+M3/(RDIST**6)+M5/(RDIST**8))
-       H(1,2)=-(SQRT(2.D0))*H(1,1)
-       H(2,1)=H(1,2)
-       H(1,3)=(SQRT(6.D0)/6.D0)*M1/(RDIST)**3
-       H(3,1)=H(1,3)
-       H(2,2)=2*H(1,1) + DELTAE
-       H(2,3)=(SQRT(3.D0)/6)*M1/RDIST**3
-       H(3,2)=H(2,3)
-       H(3,3)=DELTAE
+      H(1,1)=-(1.D0/3.D0)*(M1*RETSig/(RDIST**3)+M3/(RDIST**6)+
+     1        M5/(RDIST**8))
+      H(1,2)=-(SQRT(2.D0))*H(1,1)
+      H(2,1)=H(1,2)
+      H(1,3)=(SQRT(6.D0)/6.D0)*M1*RETPi/(RDIST)**3
+      H(3,1)=H(1,3)
+      H(2,2)=2*H(1,1) + DELTAE
+      H(2,3)=(SQRT(3.D0)/6)*M1*RETPi/RDIST**3
+      H(3,2)=H(2,3)
+      H(3,3)=DELTAE
 
 
 *     Initialize Q to the identitity matrix
@@ -283,4 +295,4 @@ c
 
       END FUNCTION SQRABS
 
-      END SUBROUTINE AF3X3 
+      END SUBROUTINE AF3x3ret 
