@@ -1420,18 +1420,18 @@ c***********************************************************************
       REAL*8 b,r,br,XP,SSm,SSm1,SSm2,TK,DM(MMAX),DMP(MMAX),DMPP(MMAX)
       br= b*r
       XP= DEXP(-br)
-      SSm= 1.d0
+      SSm= 0.d0
       SSm1= 0.d0
       SSm2= 0.d0
       TK= 1.d0
       DO  m=1, MMAX
           SSm2= SSm1
           SSm1= SSm
-          TK= TK*br/DFLOAT(m)
           SSm= SSm+ TK
           DM(m)= 1.d0 - XP*SSM
           DMP(m)= b*XP*(SSm - SSm1)
           DMPP(m)= b**2 *XP*(2.d0*SSm1 - SSm - SSm2)
+          TK= TK*br/DFLOAT(m)
           ENDDO
       RETURN
       END
