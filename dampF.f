@@ -1,9 +1,9 @@
 c***********************************************************************
       SUBROUTINE dampF(r,rhoAB,NCMM,MMLR,IDF,IDSTT,KDER,DM,DMP,DMPP)
 c** Subroutine to generate values 'Dm' and its first `Dmp' and second
-c   'Dmpp' derivatives w.r.t. R of the chosen version of the incomplete
-c    gamma function damping function, for  m= 1 to MMAX.
-c---------------------- RJL Version of 06 July 2010 --------------------
+c   'Dmpp' derivatives w.r.t. R of the chosen form of the damping
+c    function, for  m= 1 to MMAX.
+c---------------------- RJL Version of 19 January 2013 -----------------
 c-----------------------------------------------------------------------
 c                 Upon Input
 c* r - the radial distance in Angsroms (!) 
@@ -29,7 +29,7 @@ c-----------------------------------------------------------------------
      1  Lsr,m,MM,MMAX
       REAL*8 r,rhoAB,bTT(-2:2),cDS(-4:0),bDS(-4:0),aTT,br,XP,YP,
      1  TK, DM(NCMM),DMP(NCMM),DMPP(NCMM),SM(-3:25),
-     2  bpm(20,-2:0), cpm(20,-2:0),ZK
+     2  bpm(20,-4:0), cpm(20,-4:0),ZK
 c------------------------------------------------------------------------
 c  The following values for the numerical factors used in both TT and DS
 c  were  normalized to the Hydrogen data presented
@@ -38,8 +38,8 @@ c  The ratio has been chosen such that  b= FACTOR*(I_p^X / I_p^H)^{2/3}
 c  for the homoatomic diatomic species X_2, where I_p^A is the ionization
 c------------------------------------------------------------------------
        DATA bTT/2.10d0,2.44d0,2.78d0,3.13d0,3.47d0/
-       DATA bDS/2.50d0,2.90d0,3.3d0,3.69d0,3.95d0/
-       DATA cDS/0.468d0,0.446d0,0.423d0,0.40d0,0.39d0/
+       DATA bDS/2.50d0,2.90d0,3.30d0,3.69d0,3.95d0/
+       DATA cDS/0.468d0,0.446d0,0.423d0,0.405d0,0.390d0/
        DATA FIRST/ 1/
        SAVE FIRST, bpm, cpm
 c------------------------------------------------------------------------
@@ -51,11 +51,11 @@ c------------------------------------------------------------------------
 c===========================================
 c** For Tang-Toennies type damping functions
 c===========================================
-          IF((IABS(IDF).NE.4).AND.(IABS(IDF).NE.2).AND.(IDF.NE.0)) THEN
+          Lsr= IDF/2
+          IF((IDF.LT.-4).OR.(IDF.GT.4).OR.((2*LSR).NE.IDF)) THEN
                 WRITE(6,600) IDSTT,IDF
                 STOP
                 ENDIF
-          Lsr= IDF/2
           MMAX= MMLR(NCMM) + Lsr - 1
           aTT= RHOab*bTT(Lsr)
           br= aTT*r
@@ -113,7 +113,7 @@ c=======================================================================
               ENDIF
           IF(FIRST.EQ.1) THEN
               DO m= 1, 20
-                  DO  IDFF= -2,0
+                  DO  IDFF= -4,0
                       bpm(m,IDFF)= bDS(IDFF)/DFLOAT(m)
                       cpm(m,IDFF)= cDS(IDFF)/DSQRT(DFLOAT(m))
                       ENDDO

@@ -12,7 +12,7 @@ c=======================================================================
       M1= C3val
       M3= C6val
       M5= C8val
-      RET= 9.36423830d-4*RDIST
+      RET= 9.364017508271235d-4*RDIST
       RETSig= DCOS(RET) + (RET)*DSIN(RET)
       RETPi= RETSig - RET**2 *DCOS(RET)
       RDIST2= RDIST**2
@@ -219,6 +219,7 @@ cc                    Z= DREAL(T * (H(X, Y)))
 **    END SUBROUTINE ZHEEVJ3
       RETURN
       END
+c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 *=======================================================================
       DOUBLE PRECISION FUNCTION SQRABS(Z)
@@ -234,3 +235,4 @@ cc                    Z= DREAL(T * (H(X, Y)))
 **      END FUNCTION SQRABS
 *
 **     END SUBROUTINE AF3X3potRet
+c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12

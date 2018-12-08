@@ -18,14 +18,11 @@ endif
 #
 # as usual, list the objects
 #
-OBJECTS = betaFIT.o nllssrr.o llsqf.o AF3X3potRet.o
+OBJECTS = betaFIT.o nllssrr.o llsqf.o AF3X3potRet.o dampF.o
 
 betafit: $(OBJECTS)
 	$(FC) $(FFLAGS) $(OBJECTS) -o tbetaf.x
 #--------------------------------------------------------------
 # Form from Sean Mcleod,  13 February 2008
 #--------------------------------------------------------------
-
-
-
 

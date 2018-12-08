@@ -131,7 +131,7 @@ c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
         ENDIF
 c======================================================================
 c** Begin iterative convergence loop:  try for up to 30 cycles
-      DO 50 ITER= 1, 200
+      DO 50 ITER= 1, 30
           ISCAL= 0
           NITER= NITER+ 1
           DSE= 0.d0 
@@ -171,7 +171,7 @@ c     and derivatives for all data at the same time (when I=1), but only
 c     returned the values here one datum at a time (for I > 1).]
 c* NOTE 2: the partial derivative array PC returned by DYIDPJ must have
 c     an entry for every parameter in the model, though for parameters 
-cyPOW     which are held fixed [JFXP(j)=1], those PC(j) values are ignored.
+c      which are held fixed [JFXP(j)=1], those PC(j) values are ignored.
               CALL DYIDPJ(I,NDATA,NPTOT,JFXP,UU,PV,PC,PSS,RMSR)
               IF(NPARM.LT.NPTOT) THEN
 c** For constrained parameter or sequential rounding, collapse partial 
@@ -522,7 +522,7 @@ C--------------------------------------------------------------------
               ENDDO
           GC(I) = 1.D0
           GS(I) = 0.D0
-          IF(DABS(Z(1)) .LE. 0.D0) GOTO 10
+          IF(DABS(Z(1)).LE.0.D0) GOTO 10
           IF(DABS(A(I,I)) .LT. DABS(Z(1))) THEN
               Z(2) = A(I,I) / Z(1)
               GS(I) = 1.D0 / DSQRT(1.D0 + Z(2) * Z(2))
