@@ -131,7 +131,7 @@ c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
         ENDIF
 c======================================================================
 c** Begin iterative convergence loop:  try for up to 30 cycles
-      DO 50 ITER= 1, 30
+      DO 50 ITER= 1, 200
           ISCAL= 0
           NITER= NITER+ 1
           DSE= 0.d0 
