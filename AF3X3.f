@@ -1,5 +1,5 @@
 !> Calculates the 3x3 spin-orbit coupling matrix using the formula:
-!!  \f[ M>{LR}^{ret} =
+!!  \f[ M_{LR}^{ret} =
 !!      \begin{pmatrix}
 !!      -\frac{1}{3}(\frac{C_3^\sum f_{ret}^\sum}{r^3} + \frac{C_6^{\sum{},adj}}{r^6} + \frac{C_8^\sum}{r^8})
 !!      &
@@ -20,10 +20,17 @@
 !!      \Delta E
 !!      \end{pmatrix}
 !!  \f]
-!! where r (RDIST) is the internuclear distance, DeltaE is the splin-orbit splitting, Cnval is C_n, and De is the depth of the potential V(R) at equilibrium.
-!! Then, prints out the lowest eigenvalue as ULR (long-range function) as well as its derivative with respect to C_3 (DEIGM1), C6 (DEIGM3), C8 (DEIGM5), internuclear distance (DEIGR), and Depth of potential V(R) at equilibrium (DEIGDe).
+!! where \f$ r \f$ (RDIST) is the internuclear distance, \f$\Delta E \f$ is the splin-orbit splitting, Cnval is C_n, and De is the depth of the potential V(R) at equilibrium.
+!! Then, prints out the lowest eigenvalue as \f$ U_LR \f$ (long-range function) as well as its derivative with respect to C_3 (DEIGM1), C6 (DEIGM3), C8 (DEIGM5), internuclear distance (DEIGR), and Depth of potential V(R) at equilibrium (DEIGDe).
 !!
-      SUBROUTINE AF3X3potRet(RDIST,DELTAE,C3val,C6val,C8val,De,ULR,
+!!
+!! The definition of the long-range tail of the MLR potential for the \f$ 1^3 \sum_{g}^{+} \f$ is given by:
+!!  \f[
+!!      u_{LR} \equiv -\lambda_{min}^{ret} (C_3^\sum,C_6^{adj},C_8^\sum ; r) + \frac{C_9^{adj}}{r^9}
+!!  \f]
+!! where \f$ \lambda_{min}^{ret} (C_3^\sum,C_6^{adj},C_8^\sum ; r) \f$ is the lowest energy eigenvalue of the interaction energy matrix above.
+!!
+     SUBROUTINE AF3X3potRet(RDIST,DELTAE,C3val,C6val,C8val,De,ULR,
      1                              DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe)
 c=======================================================================
       REAL*8  H(3,3),DM1(3,3),DM3(3,3),DM5(3,3),DR(3,3),
@@ -262,3 +269,5 @@ c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 *
 **     END SUBROUTINE AF3X3potRet
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+
+
