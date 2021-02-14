@@ -1,8 +1,99 @@
+!> Program for performing linear or non-linear least-squares fits and
+!! (if desired) automatically using sequential rounding and refitting
+!! to minimize the numbers of parameter digits which must be quoted
+!!      [see R.J. Le Roy, J.Mol.Spectrosc. 191, 223-231 (1998)].
+!!
+!! Program uses orthogonal decomposition of the "design" (partial
+!! derivative) matrix for the core locally linear (steepest descent)
+!! step, following a method introduced (to me) by Dr. Michael Dulick.
+!! If no parameters are free (NPTOT=0), simply return RMS(residuals) as
+!! calculated from the input parameter values {PV(j)}.
+!! A user MUST SUPPLY subroutine DYIDPJ to generate the predicted
+!! value of each datum and the partial derivatives of each datum with respect to
+!! each parameter (see below) from the current trial parameters.
+!!
+!! On entry:
+!!-----------------------------------------------------------------------
+!! NDATA is the number of data to be fitted
+!!
+!! NPTOT is the total number of parameters in the model (\f$ \leq \f$ NPMAX).
+!!      If NPTOT \f$ \leq \f$ 0 , assume \f$ YD(i) = YO(i) \f$ and calculate the (RMS dimensionless deviation) = DSE from them & YU(i)
+!!
+!! NPMAX is the maximum number of model parameters allowed by current external array sizes. Should set internal NPINTMX = NPMAX (may be freely changed by the user).
+!!
+!! IROUND:
+!!      \f$ \neq \f$ 0 - causes Sequential Rounding & Refitting to be performed, with each parameter being rounded at the \f$ |IROUND|^{th} \f$ sig. digit of its local incertainty.
+!!      > 0 - rounding selects in turn remaining parameter with largest relative uncertainy
+!!      < 0 - round parameters sequentially from last to first
+!!      = 0 - simply stops after full convergence (without rounding).
+!!
+!! ROBUST:
+!!      > 0 causes fits to use Watson's ``robust'' weighting \f$ \frac{1}{u^2 + \frac{(c-o)^2}{3}} \f$.
+!!      > 1 uses normal \f$ \frac{1}{u^2} \f$ on first fit cycle and 'robust' on later cycles.
+!!
+!! LPRINT specifies the level of printing inside NLLSSRR
+!! if:
+!!      = 0, no print except for failed convergence.
+!!      < 0, only converged, unrounded parameters, PU & PS's
+!!      >= 1, print converged parameters, PU & PS's
+!!      >= 2  also print parameter change each rounding step
+!!      >= 3  also indicate nature of convergence
+!!      >= 4  also print convergence tests on each cycle
+!!      >= 5  also parameters changes & uncertainties, each cycle
+!!
+!! IFXP(j) specifies whether parameter  j  is to be held fixed [IFXP > 0] or to be freely varied in the fit [IFXP= 0]
+!! YO(i) are the NDATA 'observed' data to be fitted
+!! YU(i)  are the uncertainties in these YO(i) values
+!! PV(j)  are initial trial parameter values (for non-linear fits); should be set at zero for initially undefined parameters.
+!!
+!! On Exit:
+!!-----------------------------------------------------------------------
+!! YD(i)  is the array of differences  [Ycalc(i) - YO(i)]
+!!
+!! PV(j)  are the final converged parameter values
+!!
+!! PU(j)  are 95% confidence limit uncertainties in the PV(j)'s
+!!
+!! PS(j)  are 'parameter sensitivities' for the PV(j)'s, defined such
+!! that the RMS displacement of predicted data  due to rounding
+!! off parameter-j by PS(j) is \f$ \leq \frac{DSE}{10NPTOT} \f$
+!!
+!! CM(j,k) is the correlation matrix obtained by normalizing variance/covariance matrix:
+!!  \f[
+!!      CM(j,k) = CM(j,k)/SQRT[CM(j,j)*CM(k,k)]
+!!  \f]
+!!
+!! TSTPS is the parameter sensitivity convergence test:
+!!  \f[
+!!     TSTPS = max{|delta[PV(j)]/PS(j)|}
+!!  \f]
+!! where \f$ \delta[PV(j)] \f$ is last change in parameter-j.
+!!
+!! TSTPU is the parameter uncertainty convergence test:
+!!  \f[
+!!     TSTPU = max{|\delta[PV(j)]/PU(j)|}
+!!  \f]
+!! where \f$ \delta[PV(j)] \f$ is last change in parameter-j.
+!!
+!! DSE is the predicted (dimensionless) standard error of the fit.
+!!
+!! NOTE:
+!!-----------------------------------------------------------------------
+!! The squared 95% confidence limit uncertainty in a property
+!! F({PV(j)}) defined in terms of the fitted parameters {PV(j)} (where
+!! the L.H.S. involves  [row]*[matrix]*[column]  multiplication) is:
+!! \f[
+!!      [D(F)]^2 = [PU(1)*dF/dPV(1), PU(2)*dF/dPV(2), ...]*[CM(j,k)]*PU(2)*dF/dPV(1), PU(2)*dF/dPV(2), ...]
+!! \f]
+!!
+!! Externally dimension: YO, YU and YD \f$ \geq \f$ NDATA
+!c             PV, PU  and  PS \f$ \geq \f$ NPTOT (say as NPMAX),
+!c             CM as a square matrix with column & row length NPMAX
 c***********************************************************************
       SUBROUTINE NLLSSRR(NDATA,NPTOT,NPMAX,IROUND,ROBUST,LPRINT,IFXP,
      1                           YO,YU,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
 c**  Program for performing linear or non-linear least-squares fits and
-c  (if desired) automatically using sequential rounding and refitting 
+c  (if desired) automatically using sequential rounding and refitting
 c  to minimize the numbers of parameter digits which must be quoted [see
 c  R.J. Le Roy, J.Mol.Spectrosc. 191, 223-231 (1998)].         21/08/04
 c
@@ -15,31 +106,31 @@ c   Dept. of Chemistry, Univ. of Waterloo, Waterloo, Ontario, Canada   +
 c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the author.     +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-c** Program uses orthogonal decomposition of the "design" (partial 
-c  derivative) matrix for the core locally linear (steepest descent) 
-c  step, following a method introduced (to me) by Dr. Michael Dulick. 
+c** Program uses orthogonal decomposition of the "design" (partial
+c  derivative) matrix for the core locally linear (steepest descent)
+c  step, following a method introduced (to me) by Dr. Michael Dulick.
 c** If no parameters are free (NPTOT=0), simply return RMS(residuals) as
 c  calculated from the input parameter values {PV(j)}.
 c** A user MUST SUPPLY subroutine  DYIDPJ  to generate the predicted
 c  value of each datum and the partial derivatives of each datum w.r.t.
 c  each parameter (see below) from the current trial parameters.
 c
-c** On entry: 
-c    NDATA  is the number of data to be fitted 
+c** On entry:
+c    NDATA  is the number of data to be fitted
 c    NPTOT  the total number of parameters in the model (.le.NPMAX).
-c           If NPTOT.le.0 , assume  YD(i)=YO(i)  and calculate the (RMS 
-c           dimensionless deviation)=DSE  from them & YU(i) 
+c           If NPTOT.le.0 , assume  YD(i)=YO(i)  and calculate the (RMS
+c           dimensionless deviation)=DSE  from them & YU(i)
 c    NPMAX is the maximum number of model parameters allowed by current
-c          external array sizes.  Should set internal NPINTMX = NPMAX 
+c          external array sizes.  Should set internal NPINTMX = NPMAX
 c          (may be freely changed by the user).
-c    IROUND .ne. 0  causes Sequential Rounding & Refitting to be 
-c             performed, with each parameter being rounded at the 
+c    IROUND .ne. 0  causes Sequential Rounding & Refitting to be
+c             performed, with each parameter being rounded at the
 c            |IROUND|'th sig. digit of its local incertainty.
 c        > 0  rounding selects in turn remaining parameter with largest
 c             relative uncertainy
 c        < 0  round parameters sequentially from last to first
 c        = 0  simply stops after full convergence (without rounding).
-c    ROBUST > 0  causes fits to use Watson's ``robust'' weighting  
+c    ROBUST > 0  causes fits to use Watson's ``robust'' weighting
 c        1/[u^2 +{(c-o)^2}/3].  ROBUST > 1 uses normal 1/u^2 on first
 c        fit cycle and  'robust' on later cycles.
 c    LPRINT  specifies the level of printing inside NLLSSRR
@@ -52,34 +143,34 @@ c              >= 4  also print convergence tests on each cycle
 c              >= 5  also parameters changes & uncertainties, each cycle
 c    IFXP(j)  specifies whether parameter  j  is to be held fixed
 c           [IFXP > 0] or to be freely varied in the fit [IFXP= 0]
-c    YO(i)  are the NDATA 'observed' data to be fitted  
+c    YO(i)  are the NDATA 'observed' data to be fitted
 c    YU(i)  are the uncertainties in these YO(i) values
-c    PV(j)  are initial trial parameter values (for non-linear fits);  
+c    PV(j)  are initial trial parameter values (for non-linear fits);
 c           should be set at zero for initially undefined parameters.
 c
-c** On Exit:   
+c** On Exit:
 c    YD(i)  is the array of differences  [Ycalc(i) - YO(i)]
 c    PV(j)  are the final converged parameter values
 c    PU(j)  are 95% confidence limit uncertainties in the PV(j)'s
-c    PS(j)  are 'parameter sensitivities' for the PV(j)'s, defined such 
+c    PS(j)  are 'parameter sensitivities' for the PV(j)'s, defined such
 c           that the RMS displacement of predicted data  due to rounding
 c           off parameter-j by PS(j) is .le. DSE/10*NPTOT
 c    CM(j,k)  is the correlation matrix obtained by normalizing variance
 c           /covariance matrix:  CM(j,k) = CM(j,k)/SQRT[CM(j,j)*CM(k,k)]
-c    TSTPS = max{|delta[PV(j)]/PS(j)|}  is the parameter sensitivity 
+c    TSTPS = max{|delta[PV(j)]/PS(j)|}  is the parameter sensitivity
 c          convergence test:  delta[PV(j)] is last change in parameter-j
-c    TSTPU = max{|delta[PV(j)]/PU(j)|}  is the parameter uncertainty 
+c    TSTPU = max{|delta[PV(j)]/PU(j)|}  is the parameter uncertainty
 c          convergence test:  delta[PV(j)] is last change in parameter-j
 c    DSE    is the predicted (dimensionless) standard error of the fit
 c
-c  NOTE that the squared 95% confidence limit uncertainty in a property 
+c  NOTE that the squared 95% confidence limit uncertainty in a property
 c  F({PV(j)}) defined in terms of the fitted parameters {PV(j)} (where
 c  the L.H.S. involves  [row]*[matrix]*[column]  multiplication) is:
 c  [D(F)]^2 = [PU(1)*dF/dPV(1), PU(2)*dF/dPV(2), ...]*[CM(j,k)]*
 c                              [PU(2)*dF/dPV(1), PU(2)*dF/dPV(2), ...]
 c
-c** Externally dimension:  YO, YU and YD  .ge. NDATA 
-c             PV, PU  and  PS  .ge.  NPTOT (say as NPMAX), 
+c** Externally dimension:  YO, YU and YD  .ge. NDATA
+c             PV, PU  and  PS  .ge.  NPTOT (say as NPMAX),
 c             CM   as a square matrix with column & row length  NPMAX
 c***********************************************************************
       INTEGER NPINTMX
@@ -87,7 +178,7 @@ c***********************************************************************
       INTEGER I,J,K,L,IDF,ITER,NITER,IROUND,ISCAL,JROUND,LPRINT,NDATA,
      1 NPTOT,NPMAX,NPARM,NPFIT,JFIX,QUIT,ROBUST,
      2 IFXP(NPMAX),JFXP(NPINTMX)
-      REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPTOT), PU(NPTOT), 
+      REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPTOT), PU(NPTOT),
      1 PS(NPTOT),PSS(NPINTMX),PC(NPINTMX),PCS(NPINTMX),PX(NPINTMX),
      2 PY(NPINTMX),CM(NPMAX,NPMAX), F95(10),
      3 RMSR, RMSRB, DSE, TSTPS, TSTPSB, TSTPU, TFACT, S, UU, Zthrd
@@ -115,9 +206,9 @@ c** If array dimensioning inadequate, print warning & then STOP
       NPFIT= NPARM
       JROUND= IABS(IROUND)
 c=======================================================================
-c** Beginning of loop to perform rounding (if desired).  NOTE that in 
-c  sequential rounding, NPARM is the current (iteratively shrinking) 
-c  number of free parameters. 
+c** Beginning of loop to perform rounding (if desired).  NOTE that in
+c  sequential rounding, NPARM is the current (iteratively shrinking)
+c  number of free parameters.
     6 IF(NPARM.GT.0) TSTPS= 9.d99
 c** TFACT  is 95% student t-value for (NDATA-NPARM) degrees of freedom.
 c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
@@ -125,7 +216,7 @@ c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
       IF(NDATA.GT.NPARM) THEN
           IDF= NDATA-NPARM
           IF(IDF.GT.10) TFACT= 1.960D0*DEXP(1.265D0/DFLOAT(IDF))
-          IF(IDF.LE.10) TFACT= F95(IDF) 
+          IF(IDF.LE.10) TFACT= F95(IDF)
         ELSE
           TFACT= 0.D0
         ENDIF
@@ -134,14 +225,14 @@ c** Begin iterative convergence loop:  try for up to 30 cycles
       DO 50 ITER= 1, 30
           ISCAL= 0
           NITER= NITER+ 1
-          DSE= 0.d0 
+          DSE= 0.d0
           TSTPSB= TSTPS
           RMSRB= RMSR
 c** Zero out various arrays
    10     IF(NPARM.GT.0) THEN
 c%%           DO  I = 1,NPARM
               DO  I = 1,NPTOT
-c** PSS is the array of Saved Parameter Sensitivities from previous 
+c** PSS is the array of Saved Parameter Sensitivities from previous
 c   iteration to be carried into dyidpj subroutine - used in predicting
 c   increment for derivatives by differences.
                   PSS(I)= PS(I)
@@ -162,19 +253,19 @@ c========Beginning of core linear least-squares step====================
 c
 c** Begin by forming the Jacobian Matrix from partial derivative matrix
           DO  I = 1,NDATA
-c** User-supplied subroutine DYIDPJ uses current (trial) parameter 
+c** User-supplied subroutine DYIDPJ uses current (trial) parameter
 c  values {PV} to generate predicted datum # I [y(calc;I)=UU] and its
-c  partial derivatives w.r.t. each of the parameters, returning the 
+c  partial derivatives w.r.t. each of the parameters, returning the
 c  latter in 1-D array PC.  See dummy sample version at end of listing.
-c* NOTE 1: if more convenient, DYIDPJ could prepare the y(calc) values 
+c* NOTE 1: if more convenient, DYIDPJ could prepare the y(calc) values
 c     and derivatives for all data at the same time (when I=1), but only
 c     returned the values here one datum at a time (for I > 1).]
 c* NOTE 2: the partial derivative array PC returned by DYIDPJ must have
-c     an entry for every parameter in the model, though for parameters 
+c     an entry for every parameter in the model, though for parameters
 c      which are held fixed [JFXP(j)=1], those PC(j) values are ignored.
               CALL DYIDPJ(I,NDATA,NPTOT,JFXP,UU,PV,PC,PSS,RMSR)
               IF(NPARM.LT.NPTOT) THEN
-c** For constrained parameter or sequential rounding, collapse partial 
+c** For constrained parameter or sequential rounding, collapse partial
 c   derivative array here
                   DO  J= NPTOT,1,-1
                       IF(JFXP(J).GT.0) THEN
@@ -203,7 +294,7 @@ c   derivative array here
           RMSR= DSQRT(DSE/NDATA)
           IF(NPARM.LE.0) GO TO 60
 c
-c** Compute the inverse of  CM 
+c** Compute the inverse of  CM
           CM(1,1) = 1.D0 / CM(1,1)
           DO  I = 2,NPARM
               L = I - 1
@@ -226,7 +317,7 @@ c** Solve for parameter changes  PC(j)
                   ENDDO
               ENDDO
 c
-c** Get (upper triangular) "dispersion Matrix" [variance-covarience 
+c** Get (upper triangular) "dispersion Matrix" [variance-covarience
 c  matrix  without the sigma^2 factor].
           DO  I = 1,NPARM
               DO  J = I,NPARM
@@ -250,7 +341,7 @@ c   correlation matrix  CM
                   ENDDO
               ENDDO
 c
-c** Generate standard error  DSE = sigma^2,  and prepare to calculate 
+c** Generate standard error  DSE = sigma^2,  and prepare to calculate
 c  Parameter Sensitivities PS
           IF(NDATA.GT.NPARM) THEN
               DSE= DSQRT(DSE/(NDATA-NPARM))
@@ -258,7 +349,7 @@ c  Parameter Sensitivities PS
               DSE= 0.d0
             ENDIF
 c** Use DSE to get final (95% confid. limit) parameter uncertainties PU
-c** Calculate 'parameter sensitivities', changes in PV(j) which would 
+c** Calculate 'parameter sensitivities', changes in PV(j) which would
 c  change predictions of input data by an RMS average of  DSE*0.1/NPARM
           UU= DSE*0.1d0/DFLOAT(NPARM)
           S= DSE*TFACT
@@ -287,10 +378,10 @@ ccc               WRITE(6,612) (J,PV(J),PU(J),PS(J),PC(J),J=1,NPTOT)
 c%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 c========End of core linear least-squares step==========================
-c ... early exit if Rounding cycle finished ... 
+c ... early exit if Rounding cycle finished ...
           IF(QUIT.GT.0) GO TO 54
 c
-c** Next test for convergence 
+c** Next test for convergence
           TSTPS= 0.D0
           TSTPU= 0.D0
           DO  J= 1, NPARM
@@ -322,7 +413,7 @@ c   of change, sensitivity & uncertainty to correct label.
           IF(NITER.GT.1) THEN
 c** Test for convergence:  for every parameter desire:
 c  |parameter change| < |parameter sensitivity|,  but after iteration #5
-c  STOP iterating if  Max{|change/sens.|} increases AND 
+c  STOP iterating if  Max{|change/sens.|} increases AND
 c  Max{|change/unc.|} < 0.01
               IF(TSTPS.GT.1.d0) THEN
                   IF((RMSR.GT.RMSRB).AND.(ITER.GT.5)) THEN
@@ -345,10 +436,10 @@ c** End of iterative convergence loop for (in general) non-linear case.
 c======================================================================
 c
    54 IF(NPARM.LT.NPTOT) THEN
-c** If necessary, redistribute correlation matrix elements to full 
+c** If necessary, redistribute correlation matrix elements to full
 c  NPTOT-element correlation matrix
           DO  J= 1,NPTOT
-              IF(JFXP(J).GT.0) THEN  
+              IF(JFXP(J).GT.0) THEN
 c* If parameter J was held fixed
                   IF(J.LT.NPTOT) THEN
 c ... then move every lower CM element down one row:
@@ -356,7 +447,7 @@ c ... then move every lower CM element down one row:
 c ... For  K < J, just shift down or over to the right
                           IF(J.GT.1) THEN
                               DO  K= 1,J-1
-                                  CM(I,K)= CM(I-1,K) 
+                                  CM(I,K)= CM(I-1,K)
                                   CM(K,I)= CM(I,K)
                                   ENDDO
                               ENDIF
@@ -370,7 +461,7 @@ c ... and finally, insert appropriate row/column of zeros ....
                   DO  I= 1,NPTOT
                       CM(I,J)= 0.d0
                       CM(J,I)= 0.d0
-                      ENDDO 
+                      ENDDO
                   CM(J,J)= 1.d0
                   ENDIF
               ENDDO
@@ -384,7 +475,7 @@ c** If desired, print unrounded parameters and fit properties
               ENDIF
           ENDIF
       IF(IROUND.EQ.0) RETURN
-c** Automated 'Sequential Rounding and Refitting' section:  round 
+c** Automated 'Sequential Rounding and Refitting' section:  round
 c  selected parameter, fix it, and return (above) to repeat fit.
       IF(IROUND.LT.0) THEN
 c ... if IROUND < 0, sequentially round off 'last' remaining parameter
@@ -408,7 +499,7 @@ c ... First, select parameter JFIX with the largest relative uncertainty
                       TSTPS= TSTPSB
                       ENDIF
                   ENDIF
-              ENDDO 
+              ENDDO
         ENDIF
       UU= PV(JFIX)
       CALL ROUND(JROUND,NPMAX,NPTOT,NPTOT,JFIX,PV,PU,PS,CM)
@@ -417,8 +508,8 @@ c ... First, select parameter JFIX with the largest relative uncertainty
      1            WRITE(6,614) JFIX,UU,PU(JFIX),PS(JFIX),PV(JFIX),RMSR
       NPARM= NPARM-1
       IF(NPARM.EQ.0) THEN
-c** After rounding complete, make one more pass with all non-fixed 
-c  parameters set free to get full correct final correlation matrix, 
+c** After rounding complete, make one more pass with all non-fixed
+c  parameters set free to get full correct final correlation matrix,
 c  uncertainties & sensitivities
           NPARM= NPFIT
           QUIT= 1
@@ -430,7 +521,7 @@ c ... reinitialize for derivative-by-differences calculation
           ENDIF
       GO TO 6
 c
-c** If no parameters varied or sequential rounding completed - simply 
+c** If no parameters varied or sequential rounding completed - simply
 c   calculate DSE from RMS residuals and return.
    60 DSE= 0.d0
       IF(NDATA.GT.NPFIT) THEN
@@ -484,28 +575,55 @@ c
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
+!> Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES
+!!           EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE
+!!           J IS THE JACOBIAN IN WHICH THE FIRST N ROWS AND COLUMNS
+!!           ARE TRANSFORMED TO THE UPPER TRIANGULAR MATRIX A
+!!           (J = B * A), X IS THE INDEPENDENT VARIABLE VECTOR, AND
+!!           F IS THE DEPENDENT VARIABLE VECTOR. THE TRANSFORMATION
+!!           IS APPLIED TO ONE ROW OF THE JACOBIAN MATRIX AT A TIME.
+!! PARAMETERS:
+!!-----------------------------------------------------------------------
+!! N - (INTEGER) DIMENSION OF A TO BE TRANSFORMED.
+!!
+!! NR - (INTEGER) ROW DIMENSION OF A DECLARED IN CALLING PROGRAM.
+!!
+!! NC - (INTEGER) Column DIMENSION OF F DECLARED IN CALLING PROGRAM.
+!!
+!! A - (REAL*8 ARRAY OF DIMENSIONS \f$ \geq \f$ N*N) UPPER TRIANGULAR TRANSFORMATION MATRIX.
+!!
+!! R - (REAL*8 LINEAR ARRAY OF DIMENSION \f$ \geq \f$ N) ROW OF JACOBIAN TO BE ADDED.
+!!
+!! F - (REAL*8 LINEAR ARRAY \f$ \geq \f$ TO THE ROW DIMENSION OF THE JACOBIAN) TRANSFORMED DEPENDENT VARIABLE MATRIX.
+!!
+!! B - (REAL*8) VALUE OF F THAT CORRESPONDS TO THE ADDED JACOBIAN ROW.
+!!
+!! GC - (REAL*8 LINEAR ARRAY \f$ \geq \f$ N) GIVENS COSINE TRANSFORMATIONS.
+!!
+!! GS - (REAL*8 LINEAR ARRAY .GE. N) GIVENS SINE TRANSFORMATIONS.
+!!
 	SUBROUTINE QROD(N,NR,NC,A,R,F,B,GC,GS)
-C** Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES    
-C            EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE   
+C** Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES
+C            EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE
 C            J IS THE JACOBIAN IN WHICH THE FIRST N ROWS AND COLUMNS
-C            ARE TRANSFORMED TO THE UPPER TRIANGULAR MATRIX A      
+C            ARE TRANSFORMED TO THE UPPER TRIANGULAR MATRIX A
 C            (J = B * A), X IS THE INDEPENDENT VARIABLE VECTOR, AND
 C            F IS THE DEPENDENT VARIABLE VECTOR. THE TRANSFORMATION
 C            IS APPLIED TO ONE ROW OF THE JACOBIAN MATRIX AT A TIME.
-C  PARAMETERS :                                                   
-C      N   -  (INTEGER) DIMENSION OF A TO BE TRANSFORMED.        
+C  PARAMETERS :
+C      N   -  (INTEGER) DIMENSION OF A TO BE TRANSFORMED.
 C      NR  -  (INTEGER) ROW DIMENSION OF A DECLARED IN CALLING PROGRAM.
 C      NC  -  (INTEGER) Column DIMENSION OF F DECLARED IN CALLING PROGRAM.
 C      A   -  (REAL*8 ARRAY OF DIMENSIONS .GE. N*N) UPPER TRIANGULAR
-C             TRANSFORMATION MATRIX.                               
-C      R   -  (REAL*8 LINEAR ARRAY OF DIMENSION .GE. N) ROW OF    
-C             JACOBIAN TO BE ADDED.                             
+C             TRANSFORMATION MATRIX.
+C      R   -  (REAL*8 LINEAR ARRAY OF DIMENSION .GE. N) ROW OF
+C             JACOBIAN TO BE ADDED.
 C      F   -  (REAL*8 LINEAR ARRAY .GE. TO THE ROW DIMENSION OF THE
-C             JACOBIAN) TRANSFORMED DEPENDENT VARIABLE MATRIX.    
-C      B   -  (REAL*8) VALUE OF F THAT CORRESPONDS TO THE ADDED  
-C             JACOBIAN ROW.                                     
+C             JACOBIAN) TRANSFORMED DEPENDENT VARIABLE MATRIX.
+C      B   -  (REAL*8) VALUE OF F THAT CORRESPONDS TO THE ADDED
+C             JACOBIAN ROW.
 C     GC   -  (REAL*8 LINEAR ARRAY .GE. N) GIVENS COSINE TRANSFORMATIONS.
-C     GS   -  (REAL*8 LINEAR ARRAY .GE. N) GIVENS SINE TRANSFORMATIONS. 
+C     GS   -  (REAL*8 LINEAR ARRAY .GE. N) GIVENS SINE TRANSFORMATIONS.
 C--------------------------------------------------------------------
 C  AUTHOR : MICHAEL DULICK, Department of Chemistry,
 C           UNIVERSITY OF WATERLOO, WATERLOO, ONTARIO N2L 3G1
@@ -542,6 +660,12 @@ C--------------------------------------------------------------------
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
+!> Subroutine to round off parameter # IPAR with value PV(IPAR) at the
+!! \f$ |IROUND|^{th} \f$ significant digit of: [its uncertainty  PU(IPAR)] .
+!! On return, the rounded value replaced the initial value  PV(IPAR).
+!! Then ... use the correlation matrix CM and the uncertainties PU(I)
+!! in the other (NPTOT-1) [or (NPARM-1) free] parameters to calculate
+!! the optimum compensating changes PV(I) in their values.
       SUBROUTINE ROUND(IROUND,NPMAX,NPARM,NPTOT,IPAR,PV,PU,PS,CM)
 c** Subroutine to round off parameter # IPAR with value PV(IPAR) at the
 c  |IROUND|'th significant digit of:  [its uncertainty  PU(IPAR)] . 

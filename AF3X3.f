@@ -20,8 +20,9 @@
 !!      \Delta E
 !!      \end{pmatrix}
 !!  \f]
-!! where \f$ r \f$ (RDIST) is the internuclear distance, \f$\Delta E \f$ is the splin-orbit splitting, Cnval is C_n, and De is the depth of the potential V(R) at equilibrium.
-!! Then, prints out the lowest eigenvalue as \f$ U_LR \f$ (long-range function) as well as its derivative with respect to C_3 (DEIGM1), C6 (DEIGM3), C8 (DEIGM5), internuclear distance (DEIGR), and Depth of potential V(R) at equilibrium (DEIGDe).
+!! where \f$ r \f$ (RDIST) is the internuclear distance, \f$\Delta E \f$ is the splin-orbit splitting, \f$ C_n \f$ is Cn, and De is the depth of the potential \f$ V(R) \f$ at equilibrium.
+!!
+!! Then, prints out the lowest eigenvalue as \f$ u_{LR} \f$ (long-range function) as well as its derivative with respect to \f$ C_3 \f$ (DEIGM1), \f$ C_6 \f$ (DEIGM3), \f$ C_8 \f$ (DEIGM5), internuclear distance (DEIGR), and Depth of potential \f$ V(R) \f$ at equilibrium (DEIGDe).
 !!
 !!
 !! The definition of the long-range tail of the MLR potential for the \f$ 1^3 \sum_{g}^{+} \f$ is given by:
