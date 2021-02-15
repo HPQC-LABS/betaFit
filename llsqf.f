@@ -229,24 +229,33 @@ c
      1PARM, MXPARM)  =  (',I5,4(' ,',I5),' )')
       END
 c***********************************************************************
-!> Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES
-!!            EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE
-!!           J IS THE JACOBIAN IN WHICH THE FIRST N ROWS AND COLUMNS
-!!           ARE TRANSFORMED TO THE UPPER TRIANGULAR MATRIX A
-!!           (J = B * A), X IS THE INDEPENDENT VARIABLE VECTOR, AND
-!!           F IS THE DEPENDENT VARIABLE VECTOR. THE TRANSFORMATION
-!!           IS APPLIED TO ONE ROW OF THE JACOBIAN MATRIX AT A TIME.
-!! PARAMETERS:
+!> Performs orthogonal decomposition of the linear least-squares equation:
+!!  \f[
+!!      (J*X = F) \rightarrow (A*X = B(Transpose)*F)
+!!  \f]
+!! where \f$ J \f$ is the Jacobian in which the first \f$ N \f$ rows and columns are transformed
+!! to the upper triangular matrix \f$ A (J = B*A) \f$, X is the independent variable vector, and F is
+!! the dependent variable vector. The transformation is applied to one row of the Jacobian matrix at a time.
+!!
+!! Parameters:
 !!-----------------------------------------------------------------------
-!! N - (INTEGER) DIMENSION OF A TO BE TRANSFORMED.
-!! NR - (INTEGER) ROW DIMENSION OF A DECLARED IN CALLING PROGRAM.
-!! NC - (INTEGER) Column DIMENSION OF F DECLARED IN CALLING PROGRAM.
-!! A - (REAL*8 ARRAY OF DIMENSIONS \f$ \geq \f$ N*N) UPPER TRIANGULAR TRANSFORMATION MATRIX.
-!! R - (REAL*8 LINEAR ARRAY OF DIMENSION \f$ \geq \f$ N) ROW OF JACOBIAN TO BE ADDED.
-!! F - (REAL*8 LINEAR ARRAY \f$ \geq \f$ TO THE ROW DIMENSION OF THE JACOBIAN) TRANSFORMED DEPENDENT VARIABLE MATRIX.
-!! B - (REAL*8) VALUE OF F THAT CORRESPONDS TO THE ADDED JACOBIAN ROW.
-!! GC - (REAL*8 LINEAR ARRAY \f$ \geq \f$ N) GIVENS COSINE TRANSFORMATIONS.
-!! GS - (REAL*8 LINEAR ARRAY \f$ \geq \f$ N) GIVENS SINE TRANSFORMATIONS.
+!! \f$ N \f$ (Integer) is the dimension of \f$ A \f$ to be transformed.
+!!
+!! \f$ NR \f$ (Integer) is the row dimension of a declared in calling program.
+!!
+!! \f$ NC \f$ (Integer) is the column dimension of \f$ F \f$ declared in calling program.
+!!
+!! \f$ A \f$ (Real*8 array of dimensions \f$ \geq N*N \f$) upper triangular transformation matrix.
+!!
+!! \f$ R \f$ (Real*8 linear array of dimension \f$ \geq N \f$) row of Jacobian to be added.
+!!
+!! \f$ F \f$ (Real*8 linear array \f$ \geq \f$ to the row dimension of the Jacobian) transformed dependent variable matrix.
+!!
+!! \f$ B \f$ (Real*8) value of \f$ F \f$ that corresponds to the added Jacobian row.
+!!
+!! \f$ GC \f$ (Real*8 linear array \f$ \geq N \f$) givens cosine transformations.
+!!
+!! \f$ GS \f$ (Real*8 linear array \f$ \geq N \f$) givens sine transformations.
 	SUBROUTINE QQROD(N,NR,NC,A,R,F,B,GC,GS)
 C** Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES    
 C            EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE   

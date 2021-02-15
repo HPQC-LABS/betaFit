@@ -419,8 +419,8 @@ c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 !> At the position \f$ 'x' \f$, evaluates the \f$ m^{th} Sm(x) \f$ function contributing the definition of the the natural cubic spline defined by function values at the \f$ n \f$ points \f$ y(i) [i=1,n] \f$
       double precision function Scalc(x,m,n,y,rKL,LMAX)
-c** At the position 'x', evaluate the m'th Sm(x) function contributing 
-c  the definition of the the natural cubic spline defined by 
+c** At the position 'x', evaluate the m'th Sm(x) function contributing
+c  the definition of the the natural cubic spline defined by
 c  function values at the  n  points  y(i) [i=1,n]
       INTEGER  LMAX,I,K,KK,M,N
       REAL*8  x,y1,y2,y(1:LMAX),rKL(1:LMAX,1:LMAX)
@@ -442,7 +442,7 @@ c... select interval
       y1=y(k-1)
       y2=y(k)
       Scalc= 0.d0
-      IF(kk.eq.0) 
+      IF(kk.eq.0)
      1    Scalc= rKL(m,k)*((y1-x)*(((y1-x)/(y1-y2))**2-1)/6)*(y1-y2)
      2         + rKL(m,k-1)*((x-y2)*(((x-y2)/(y1-y2))**2-1)/6)*(y1-y2)
       IF(k.EQ.m) Scalc= Scalc + (y1-x)/(y1-y2)
@@ -451,6 +451,10 @@ c... select interval
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
+!> Call this subroutine with list of the \f$ 'n' \f$ spline \f$ x_i \f$ values in array
+!!   \f$ 'x' \f$ with maximum dimension \f$ 'LMAX' \f$ and it will return the \f$ LMAX \f$ x \f$ LMAX \f$
+!!   array of \f$ 'rKL' \f$ coefficients used for generating the \f$ 'n' S_n(x) \f$
+!!   spline coefficient functions.
       subroutine Lkoef(n,x,A,LMAX)   
 c*** Based on nespl subroutine          
       INTEGER LMAX

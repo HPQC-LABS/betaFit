@@ -1,94 +1,116 @@
 !> Program for performing linear or non-linear least-squares fits and
 !! (if desired) automatically using sequential rounding and refitting
 !! to minimize the numbers of parameter digits which must be quoted
+!!
 !!      [see R.J. Le Roy, J.Mol.Spectrosc. 191, 223-231 (1998)].
 !!
 !! Program uses orthogonal decomposition of the "design" (partial
 !! derivative) matrix for the core locally linear (steepest descent)
 !! step, following a method introduced (to me) by Dr. Michael Dulick.
-!! If no parameters are free (NPTOT=0), simply return RMS(residuals) as
-!! calculated from the input parameter values {PV(j)}.
+!! If no parameters are free \f$ (NPTOT=0) \f$, simply return RMS(residuals) as
+!! calculated from the input parameter values \f$ {PV(j)} \f$.
+!!
 !! A user MUST SUPPLY subroutine DYIDPJ to generate the predicted
 !! value of each datum and the partial derivatives of each datum with respect to
 !! each parameter (see below) from the current trial parameters.
 !!
 !! On entry:
 !!-----------------------------------------------------------------------
-!! NDATA is the number of data to be fitted
+!! \f$ NDATA \f$ is the number of data to be fitted.
 !!
-!! NPTOT is the total number of parameters in the model (\f$ \leq \f$ NPMAX).
-!!      If NPTOT \f$ \leq \f$ 0 , assume \f$ YD(i) = YO(i) \f$ and calculate the (RMS dimensionless deviation) = DSE from them & YU(i)
+!! \f$ NPTOT \f$ is the total number of parameters in the model (\f$ \leq NPMAX \f$).
 !!
-!! NPMAX is the maximum number of model parameters allowed by current external array sizes. Should set internal NPINTMX = NPMAX (may be freely changed by the user).
+!!      If NPTOT < or = 0, assume YD(i) = YO(i) and calculate the (RMS dimensionless deviation) = DSE from them & YU(i)
 !!
-!! IROUND:
-!!      \f$ \neq \f$ 0 - causes Sequential Rounding & Refitting to be performed, with each parameter being rounded at the \f$ |IROUND|^{th} \f$ sig. digit of its local incertainty.
-!!      > 0 - rounding selects in turn remaining parameter with largest relative uncertainy
-!!      < 0 - round parameters sequentially from last to first
+!! \f$ NPMAX \f$ is the maximum number of model parameters allowed by current external array sizes. Should set internal \f$ NPINTMX = NPMAX \f$ (may be freely changed by the user).
+!!
+!! \f$ IROUND \f$:
+!!
+!!      != 0 - causes Sequential Rounding & Refitting to be performed, with each parameter being rounded at the |IROUND|'th sig. digit of its local incertainty.
+!!
+!!      > 0 - rounding selects in turn remaining parameter with largest relative uncertainty.
+!!
+!!      < 0 - round parameters sequentially from last to first.
+!!
 !!      = 0 - simply stops after full convergence (without rounding).
 !!
-!! ROBUST:
-!!      > 0 causes fits to use Watson's ``robust'' weighting \f$ \frac{1}{u^2 + \frac{(c-o)^2}{3}} \f$.
-!!      > 1 uses normal \f$ \frac{1}{u^2} \f$ on first fit cycle and 'robust' on later cycles.
+!! \f$ ROBUST \f$:
 !!
-!! LPRINT specifies the level of printing inside NLLSSRR
-!! if:
+!! If ROBUST > 0, causes fits to use Watson's ``robust'' weighting \f$ \frac{1}{u^2 + \frac{(c-o)^2}{3}} \f$.
+!!
+!! If ROBUST > 1, uses normal \f$ \frac{1}{u^2} \f$ on first fit cycle and 'robust' on later cycles.
+!!
+!! \f$ LPRINT \f$ specifies the level of printing inside \f$ NLLSSRR \f$
+!! If:
+!!
 !!      = 0, no print except for failed convergence.
-!!      < 0, only converged, unrounded parameters, PU & PS's
-!!      >= 1, print converged parameters, PU & PS's
-!!      >= 2  also print parameter change each rounding step
-!!      >= 3  also indicate nature of convergence
-!!      >= 4  also print convergence tests on each cycle
-!!      >= 5  also parameters changes & uncertainties, each cycle
 !!
-!! IFXP(j) specifies whether parameter  j  is to be held fixed [IFXP > 0] or to be freely varied in the fit [IFXP= 0]
-!! YO(i) are the NDATA 'observed' data to be fitted
-!! YU(i)  are the uncertainties in these YO(i) values
-!! PV(j)  are initial trial parameter values (for non-linear fits); should be set at zero for initially undefined parameters.
+!!      < 0, only converged, unrounded parameters, PU & PS's.
+!!
+!!      >= 1, print converged parameters, PU & PS's.
+!!
+!!      >= 2  also print parameter change each rounding step.
+!!
+!!      >= 3  also indicate nature of convergence.
+!!
+!!      >= 4  also print convergence tests on each cycle.
+!!
+!!      >= 5  also parameters changes & uncertainties, each cycle.
+!!
+!! \f$ IFXP(j) \f$ specifies whether parameter \f$ j \f$ is to be held fixed \f$ [IFXP > 0] \f$ or to be freely varied in the fit \f$ [IFXP= 0] \f$.
+!!
+!! \f$ YO(i) \f$ are the \f$ NDATA \f$ 'observed' data to be fitted.
+!!
+!! \f$ YU(i) \f$ are the uncertainties in these \f$ YO(i) \f$ values.
+!!
+!! \f$ PV(j) \f$ are initial trial parameter values (for non-linear fits); should be set at zero for initially undefined parameters.
 !!
 !! On Exit:
 !!-----------------------------------------------------------------------
-!! YD(i)  is the array of differences  [Ycalc(i) - YO(i)]
+!! \f$ YD(i) \f$ is the array of differences \f$ [Ycalc(i) - YO(i)] \f$.
 !!
-!! PV(j)  are the final converged parameter values
+!! \f$ PV(j) \f$ are the final converged parameter values.
 !!
-!! PU(j)  are 95% confidence limit uncertainties in the PV(j)'s
+!! \f$ PU(j) \f$ are 95% confidence limit uncertainties in the \f$ PV(j) \f$'s.
 !!
-!! PS(j)  are 'parameter sensitivities' for the PV(j)'s, defined such
-!! that the RMS displacement of predicted data  due to rounding
-!! off parameter-j by PS(j) is \f$ \leq \frac{DSE}{10NPTOT} \f$
+!! \f$ PS(j) \f$ are 'parameter sensitivities' for the \f$ PV(j) \f$'s, defined such
+!! that the RMS displacement of predicted data due to rounding
+!! off parameter-\f$ j \f$ by \f$ PS(j) \f$ is \f$ \leq \frac{DSE}{10NPTOT} \f$
 !!
-!! CM(j,k) is the correlation matrix obtained by normalizing variance/covariance matrix:
+!! \f$ CM(j,k) \f$ is the correlation matrix obtained by normalizing variance/covariance matrix:
 !!  \f[
-!!      CM(j,k) = CM(j,k)/SQRT[CM(j,j)*CM(k,k)]
+!!      CM(j,k) = \frac{CM(j,k)}{\sqrt{CM(j,j)*CM(k,k)}}
 !!  \f]
 !!
-!! TSTPS is the parameter sensitivity convergence test:
+!! \f$ TSTPS \f$ is the parameter sensitivity convergence test:
 !!  \f[
-!!     TSTPS = max{|delta[PV(j)]/PS(j)|}
+!!     TSTPS = max{\left| \frac{\Delta PV(j)}{PS(j)} \right|}
 !!  \f]
-!! where \f$ \delta[PV(j)] \f$ is last change in parameter-j.
+!! where \f$ \Delta PV(j) \f$ is last change in parameter-\f$ j \f$.
 !!
-!! TSTPU is the parameter uncertainty convergence test:
+!! \f$ TSTPU \f$ is the parameter uncertainty convergence test:
 !!  \f[
-!!     TSTPU = max{|\delta[PV(j)]/PU(j)|}
+!!     TSTPU = max{\left| \frac{\Delta PV(j)}{PU(j)} \right|}
 !!  \f]
-!! where \f$ \delta[PV(j)] \f$ is last change in parameter-j.
+!! where \f$ \Delta PV(j) \f$ is last change in parameter-\f$ j \f$.
 !!
-!! DSE is the predicted (dimensionless) standard error of the fit.
+!! \f$ DSE \f$ is the predicted (dimensionless) standard error of the fit.
 !!
 !! NOTE:
 !!-----------------------------------------------------------------------
 !! The squared 95% confidence limit uncertainty in a property
-!! F({PV(j)}) defined in terms of the fitted parameters {PV(j)} (where
-!! the L.H.S. involves  [row]*[matrix]*[column]  multiplication) is:
+!! \f$ F({PV(j)}) \f$ defined in terms of the fitted parameters \f$ {PV(j)} \f$ (where
+!! the L.H.S. involves \f$ [row]*[matrix]*[column] \f$ multiplication) is:
 !! \f[
 !!      [D(F)]^2 = [PU(1)*dF/dPV(1), PU(2)*dF/dPV(2), ...]*[CM(j,k)]*PU(2)*dF/dPV(1), PU(2)*dF/dPV(2), ...]
 !! \f]
 !!
-!! Externally dimension: YO, YU and YD \f$ \geq \f$ NDATA
-!c             PV, PU  and  PS \f$ \geq \f$ NPTOT (say as NPMAX),
-!c             CM as a square matrix with column & row length NPMAX
+!! Externally dimension:
+!!-----------------------------------------------------------------------
+!! \f$ YO \f$, \f$ YU \f$ and \f$ YD \geq NDATA \f$
+!!
+!! \f$ PV \f$, \f$ PU \f$ and \f$ PS \geq NPTOT \f$ (say as \f$ NPMAX \f$),
+!! \f$ CM \f$ as a square matrix with column & row length \f$ NPMAX \f$.
 c***********************************************************************
       SUBROUTINE NLLSSRR(NDATA,NPTOT,NPMAX,IROUND,ROBUST,LPRINT,IFXP,
      1                           YO,YU,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
@@ -575,32 +597,33 @@ c
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
-!> Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES
-!!           EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE
-!!           J IS THE JACOBIAN IN WHICH THE FIRST N ROWS AND COLUMNS
-!!           ARE TRANSFORMED TO THE UPPER TRIANGULAR MATRIX A
-!!           (J = B * A), X IS THE INDEPENDENT VARIABLE VECTOR, AND
-!!           F IS THE DEPENDENT VARIABLE VECTOR. THE TRANSFORMATION
-!!           IS APPLIED TO ONE ROW OF THE JACOBIAN MATRIX AT A TIME.
-!! PARAMETERS:
+!> Performs orthogonal decomposition of the linear least-squares equation:
+!!  \f[
+!!      (J*X = F) \rightarrow (A*X = B(Transpose)*F)
+!!  \f]
+!! where \f$ J \f$ is the Jacobian in which the first \f$ N \f$ rows and columns are transformed
+!! to the upper triangular matrix \f$ A (J = B*A) \f$, X is the independent variable vector, and F is
+!! the dependent variable vector. The transformation is applied to one row of the Jacobian matrix at a time.
+!!
+!! Parameters:
 !!-----------------------------------------------------------------------
-!! N - (INTEGER) DIMENSION OF A TO BE TRANSFORMED.
+!! \f$ N \f$ (Integer) is the dimension of \f$ A \f$ to be transformed.
 !!
-!! NR - (INTEGER) ROW DIMENSION OF A DECLARED IN CALLING PROGRAM.
+!! \f$ NR \f$ (Integer) is the row dimension of a declared in calling program.
 !!
-!! NC - (INTEGER) Column DIMENSION OF F DECLARED IN CALLING PROGRAM.
+!! \f$ NC \f$ (Integer) is the column dimension of \f$ F \f$ declared in calling program.
 !!
-!! A - (REAL*8 ARRAY OF DIMENSIONS \f$ \geq \f$ N*N) UPPER TRIANGULAR TRANSFORMATION MATRIX.
+!! \f$ A \f$ (Real*8 array of dimensions \f$ \geq N*N \f$) upper triangular transformation matrix.
 !!
-!! R - (REAL*8 LINEAR ARRAY OF DIMENSION \f$ \geq \f$ N) ROW OF JACOBIAN TO BE ADDED.
+!! \f$ R \f$ (Real*8 linear array of dimension \f$ \geq N \f$) row of Jacobian to be added.
 !!
-!! F - (REAL*8 LINEAR ARRAY \f$ \geq \f$ TO THE ROW DIMENSION OF THE JACOBIAN) TRANSFORMED DEPENDENT VARIABLE MATRIX.
+!! \f$ F \f$ (Real*8 linear array \f$ \geq \f$ to the row dimension of the Jacobian) transformed dependent variable matrix.
 !!
-!! B - (REAL*8) VALUE OF F THAT CORRESPONDS TO THE ADDED JACOBIAN ROW.
+!! \f$ B \f$ (Real*8) value of \f$ F \f$ that corresponds to the added Jacobian row.
 !!
-!! GC - (REAL*8 LINEAR ARRAY \f$ \geq \f$ N) GIVENS COSINE TRANSFORMATIONS.
+!! \f$ GC \f$ (Real*8 linear array \f$ \geq N \f$) givens cosine transformations.
 !!
-!! GS - (REAL*8 LINEAR ARRAY .GE. N) GIVENS SINE TRANSFORMATIONS.
+!! \f$ GS \f$ (Real*8 linear array \f$ \geq N \f$) givens sine transformations.
 !!
 	SUBROUTINE QROD(N,NR,NC,A,R,F,B,GC,GS)
 C** Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES
@@ -660,12 +683,12 @@ C--------------------------------------------------------------------
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
-!> Subroutine to round off parameter # IPAR with value PV(IPAR) at the
-!! \f$ |IROUND|^{th} \f$ significant digit of: [its uncertainty  PU(IPAR)] .
-!! On return, the rounded value replaced the initial value  PV(IPAR).
-!! Then ... use the correlation matrix CM and the uncertainties PU(I)
-!! in the other (NPTOT-1) [or (NPARM-1) free] parameters to calculate
-!! the optimum compensating changes PV(I) in their values.
+!> Subroutine to round off parameter # \f$ IPAR \f$ with value \f$ PV(IPAR) \f$ at the
+!! \f$ |IROUND|^{th} \f$ significant digit of: [its uncertainty \f$ PU(IPAR) \f$] .
+!! On return, the rounded value replaced the initial value \f$ PV(IPAR) \f$.
+!! Then ... use the correlation matrix CM and the uncertainties \f$ PU(I) \f$
+!! in the other \f$ (NPTOT-1) \f$ [or \f$ (NPARM-1) \f$ free] parameters to calculate
+!! the optimum compensating changes \f$ PV(I) \f$ in their values.
       SUBROUTINE ROUND(IROUND,NPMAX,NPARM,NPTOT,IPAR,PV,PU,PS,CM)
 c** Subroutine to round off parameter # IPAR with value PV(IPAR) at the
 c  |IROUND|'th significant digit of:  [its uncertainty  PU(IPAR)] . 

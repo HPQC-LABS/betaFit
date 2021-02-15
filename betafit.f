@@ -1,7 +1,93 @@
+!> Program to fit NTP read-in potential fx. values \f$ 0{RTP(i),VTP(i)} \f$
+!! (with or without individual weights) to a chosen analytic form.
+!!
+!! \f$ PSEL \f$ specifies the type of potential being fitted to:
+!!
+!!      PSEL = 1 for EMO
+!!      PSEL = 2 for an MLR (or MLJ)
+!!      PSEL = 3 for DELR
+!!      PSEL = 4 for GPEF
+!!
+!! \f$ NPT \f$ is the number of read-in potential points being fitted to.
+!!
+!! \f$ UNC \f$ is the energy uncertainty associated with the potential points
+!! (plausibly ca. 0.1 cm-1 for RKR). To weight each point separately
+!! set UNC < 0.0 and read in a separate uncertainty for each point.
+!!
+!! \f$ IROUND \f$ specifies the level of rounding inside NLLSSRR if:
+!!
+!!      > 0: requires that Sequential Rounding & Refitting be performed, with each parameter being rounded at the IROUND'th sig. digit of its local uncertainty.
+!!      < or = 0: simply stops after full convergence (without rounding).
+!!
+!! \f$ LPPOT \f$ specifies whether (\f$ LPPOT \f$ > 0) or not (\f$ LPPOT \leq 0 \f$) the code should read instructions to generate an array of potential function values on some specified mesh and range.
+!!
+!!      If LPPOT > 0, read a separate mesh and range for each {N,p,q,Rref} case.
+!!
+!! \f$ prFIT \f$ = 1 causes printout of results of preliminary linearized fit and (as appropriate) other non-final fits. Normally set \f$ prFIT = 0 \f$.
+!!
+!! \f$ prFIT \f$ > 1  specifies the level of printing inside fit subroutine NLLSSRR. If:
+!!
+!!      >= 1  print converged parameters, PU & PS's.
+!!      >= 2  also print parameter change each rounding step.
+!!      >= 3  also indicate nature of convergence.
+!!      >= 4  also print convergence tests on each cycle.
+!!      >= 5  also parameters changes & uncertainties, each cycle.
+!!
+!! \f$ prDIFF \f$ (integer) > 0 causes fit residuals to be printed after each complete fit: no print if \f$ prDIFF \leq 0 \f$.
+!!
+!! \f$ Re \f$ & \f$ De \f$ are assumed potential well minimum position & well depth.
+!! Note:
+!!-----------------------------------------------------------------------
+!! \f$ De \f$ is a dummy variable for a \f$ GPEF \f$ function.
+!! \f$ VMIN \f$ is the minimum of the potential function defined by the read-in
+!! points [typically = 0 for RKR potential, but non-zero for ab initio].
+!! To fix \f$ Re \f$, \f$ De \f$ or \f$ VMIN \f$ unchanged at read-in values, set (integer)
+!! \f$ IFXRe \f$, \f$ IFXDe \f$, and/or \f$ IFXVMIN \f$ > 0 ; to fit them, set value =0
+!!      [Normally set  IFXVMIN = 0 !!]
+!!
+!! For an \f$ MLR (PSEL=2) \f$ or \f$ DELR (PSEL=3) \f$ potential, read the number of
+!! long-range terms NCMM used to define long-range potential tail:
+!!  \f[
+!!      V(r)= De - \sum{\frac{CmVAL}{r^{MMLR}}}
+!!  \f]
+!! If \f$ rhoAB \leq 0.0 \f$ have NO damping functions, all \f$ Dm(R) = 1.0 \f$.
+!!
+!! If \f$ rhoAB \f$ > 0.0, it is the molecule-dependent radial scaling factor of Douketis et al. [JCP 76, 3057 (1982)]
+!!
+!!  \f[
+!!      rhoAB =  2 \frac{rhoA*rhoB}{rhoA+rhoB}
+!!  \f]
+!! where \f$ rhoA \f$ is the ionization potential ratio \f$ \left| \frac {I_p^A}{I_p^H}^{2/3} \right| \f$ for atom A vs. atomic H.
+!!
+!! For \f$ rhoAB \f$ > 0.0,  sVSR2 specifies damping such that:
+!!  \f[
+!!      \frac{Dm(r)}{r^m} \rightarrow r^{\frac{sVSR2}{2}}
+!!  \f]
+!!
+!! \f$ IDSTT \f$ > 0  use generalized Douketis et al. damping fx.
+!!
+!! \f$ IDSTT \f$ > 1  use \f$ DS \f$ damping for \f$ s = -1/2 \f$ AND impose very short-range \f$ \frac{1}{r} \f$ behaviour with \f$ C1 = IDSTT = Z1*Z2 \f$.
+!!
+!! \f$ IDSTT \leq 0 \f$, use generalized Tang-Toennies damping fx.
+!!
+!! \f$ APSE \f$ is an integer:
+!!
+!!      > 0: use A.Pashov natural Spline in MLR Exponent.
+!!      < or = 0: for normal constrained polynomial exponent.
+!!
+!! For an \f$ MLR \f$ potential with \f$ APSE \f$ > 0, \f$ yMIN \f$ is a negative{!} number
+!! (-1 \f$ \leq \f$ yMIN < 0) which specifies the lower bound on the yp values
+!! selected to define the \f$ MLR \f$ exponent spline.
+!!
+!! For each long-range term read power \f$ MMLR(i) \f$ & coefficient \f$ CmVAL(i) \f$.
+!!
+!! For special Aubert-Frecon case, \f$ NCMM \f$ = 6, \f$ MMLR \f$ = {3,0,6,6,8,8} and
+!! coefficients are: \f$ CmVAL(1) = C3(sig) \f$, \f$ CmVAL(2) = ASO \f$, \f$ CmVAL(3) = C6(Sig) \f$,
+!! \f$ CmVAL(4)= C6(\pi) \f$, \f$ CmVAL(5)= C8(sig) \f$ & \f$ CmVAL(6)= C8(\pi) \f$.
 c***********************************************************************
 c********  Program  betaFIT_2.1  version of  18 March 2013  **********
 c***********************************************************************
-c* Program to fit NTP read-in potential fx. values {RTP(i),VTP(i)} 
+c* Program to fit NTP read-in potential fx. values {RTP(i),VTP(i)}
 c  (with or without individual weights) to a chosen analytic form.
 c***********************************************************************
       INTEGER MXDATA, MXPARM, MXMLR, NxPSE
@@ -34,7 +120,7 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c** PSEL  specifies the type of potential being fitted to:
 c     PSEL= 1 for EMO;   PSEL=2 for an MLR (or MLJ);   PSEL=3  for DELR ;
-c     PSEL= 4  for GPEF  
+c     PSEL= 4  for GPEF
 c* NPT  is the number of read-in potential points being fitted to.
 c* UNC  is the energy uncertainty associated with the potential points
 c     (plausibly ca. 0.1 cm-1 for RKR).  To weight each point separately
@@ -44,11 +130,11 @@ c          > 0 : requires that Sequential Rounding & Refitting be
 c                performed, with each parameter being rounded at the
 c                IROUND'th sig. digit of its local uncertainty.
 c          <=0 : simply stops after full convergence (without rounding).
-c  LPPOT specifies whether (LPPOT > 0) or not (LPPOT.le.0) the code should 
-c             read instructions to generate an array of potential function 
+c  LPPOT specifies whether (LPPOT > 0) or not (LPPOT.le.0) the code should
+c             read instructions to generate an array of potential function
 c             values on some specified mesh and range
 c       If LPPOT > 0, read a separate mesh and range for eash {N,p,q,Rref} case
-c* prFIT = 1  causes printout of results of preliminary linearized fit 
+c* prFIT = 1  causes printout of results of preliminary linearized fit
 c       and (as appropriate) other non-final fits.  Normally set prFIT=0
 c  prFIT > 1  specifies the level of printing inside fit subroutine NLLSSRR
 c            >= 1  print converged parameters, PU & PS's
@@ -60,7 +146,7 @@ c  prDIFF (integer) > 0  causes fit residuals to be printed after each
 c                        complete fit:  no print if  prDIFF.LE.0
 c** Re & De  are assumed potential well minimum position & well depth.
 c  ...  note that  De  is a dummy variable for a GPEF function
-c** VMIN is the minimum of the potential function defined by the read-in 
+c** VMIN is the minimum of the potential function defined by the read-in
 c   points [typically =0 for RKR potential, but non-zero for ab initio]
 c** To fix  Re, De or VMIN  unchanged at read-in values, set (integer)
 c   IFXRe, IFXDe, and/or IFXVMIN > 0 ;  to fit them, set value =0
@@ -79,8 +165,8 @@ c=======================================================================
       VMINin= VMIN
       IF(PSEL.LE.3) WRITE(6,600) NNAME, VMIN, Re, De
       IF(PSEL.GT.3) WRITE(6,600) NNAME, VMIN, Re
-c** For an MLR (PSEL=2) or DELR (PSEL=3) potential, read the number of 
-c   long-range terms NCMM used to define long-range potential tail:  
+c** For an MLR (PSEL=2) or DELR (PSEL=3) potential, read the number of
+c   long-range terms NCMM used to define long-range potential tail:
 c    V(r)= De - \sum{CmVAL/r^MMLR}
 c** If rhoAB .LE. 0.0  have NO damping functions: all  Dm(R)= 1.0
 c   If rhoAB > 0.0  it is the molecule-dependent radial scaling factor
@@ -96,10 +182,10 @@ c
 c** APSE is an integer: > 0  to use A.Pashov natural Spline in MLR Exponent
 c                    : .le. 0  for normal constrained polynomial exponent
 c*  For an MLR potential with  APSE > 0,  yMIN  is a negative{!} number
-c      (-1 .le. yMIN < 0) which specifies the lower bound on the yp values 
-c      selected to define the MLR exponent spline.  
+c      (-1 .le. yMIN < 0) which specifies the lower bound on the yp values
+c      selected to define the MLR exponent spline.
 c** For each long-range term read power  MMLR(i)  & coefficient CmVAL(i)
-c** For special Aubert-Frecon case,  NCMM= 6,  MMLR= {3,0,6,6,8,8} and 
+c** For special Aubert-Frecon case,  NCMM= 6,  MMLR= {3,0,6,6,8,8} and
 c  coefficients are: CmVAL(1)= C3(sig), CmVAL(2)= ASO, CmVAL(3)= C6(Sig),
 c  CmVAL(4)= C6(pi), CmVAL(5)= C8(sig) & CmVAL(6)= C8(pi).
 c=======================================================================
@@ -135,7 +221,7 @@ c** For a GPEF potential, read coefficients to define expansion vble:
 c       y = (r^p - Re^p)/(as*r^p + bs*Re^p)  where  p, as & bs all fixed
 c=======================================================================
       IF(PSEL.EQ.4) THEN
-          READ(5,*) as, bs 
+          READ(5,*) as, bs
           WRITE(6,605) as,bs
           ENDIF
 c=======================================================================
@@ -165,7 +251,7 @@ c
      1'   rhoAB=',  F7.4,'   sVSR2=',i3/(49x,'C',i2,'=',1PD15.8:))
   696 FORMAT(' uLR(r) inverse-power terms incorporate ',a2,' damping wit
      1h  rhoAB=',f10.7/8x ,'defined to give very short-range damped uLR-
-     2term behaviour  r^{',i2,'/2}'/(49x,'C',i2,'=',1PD15.8:)) 
+     2term behaviour  r^{',i2,'/2}'/(49x,'C',i2,'=',1PD15.8:))
   698 FORMAT(' uLR(r)  is a simple inverse-power sum with',6x,'C',I2,
      1  '=',1PD15.8:/(49x,'C',i2,'=',D15.8:))
   600 FORMAT(' Fit an ',A4,'p  potential function to the input points'/
@@ -203,16 +289,16 @@ c
 c=======================================================================
 c** Now ... loop over different {p,q,NS,NL} combinations till end of data
 c**  p and q are powers used to define radial variable in the exponent
-c       beta(r)= yp*betaINF + [1 - yp]*sum{beta_i*yq^i}  where  
+c       beta(r)= yp*betaINF + [1 - yp]*sum{beta_i*yq^i}  where
 c       ya=(R^a - AREF^a)/(R^a + AREF^a)   for  a= p  or  q
 c** NL= is the order of the\beta(y)  exponent expansion for EMO, DELR,
 c    or MLR potentials with APSE.leq.0.
 c   NS is a dummy variable for EMO, DELR & 'ordinary' MLR with APSE.le.0
-c** For an MLR potential with  APSE > 0,  Nbeta=(NS+NL+1) is the number 
+c** For an MLR potential with  APSE > 0,  Nbeta=(NS+NL+1) is the number
 c   of yp values to be used to define the exponent spline used for beta(y):
 c   NL specifies the number of yp values from  yp= 0  to  yp= 1.0
-c   NS specifies the number of (equally spaced) yp values for  
-c      yMIN .leq. yp = yMIN to 0.0  
+c   NS specifies the number of (equally spaced) yp values for
+c      yMIN .leq. yp = yMIN to 0.0
 c** For a GPEF potential, consider powers ranging from  NS(.ge.0) to NL
 c* RREF   defines the reference distance in the expansion variable
 c      - for  RREF.le.0 , define parameter  RREF = Re
@@ -250,7 +336,7 @@ c-----------------------------------------------------------------------
           ENDIF
       IF(PSEL.EQ.2) THEN
           IF(APSE.GT.0) WRITE(6,650) NS, NL
-          IF(APSE.LE.0) WRITE(6,634) 
+          IF(APSE.LE.0) WRITE(6,634)
           IF(RREF.gt.0.d0) THEN
               AREF= RREF
               WRITE(6,601) AREF,AREF
@@ -348,7 +434,7 @@ c ... next create partial derivative array for linearized fit ...
                   yPOW= yPOW*yp
                   ENDDO
 c%%  elective printout for testing
-c%%           if(i.eq.1) write(8,700) 
+c%%           if(i.eq.1) write(8,700)
 c%%           write(8,702) rtp(i),yp,ypRE,vtp(i),betay(i)
 c%%  1                                           (dydp(i,j),j=1,Nbeta)
 c 702 format(f6.3,f8.4,f9.2,1P2d13.5:/(14x,5d13.5))
@@ -366,7 +452,7 @@ c-----------------------------------------------------------------------
 c*** Preliminary linearized fit for an  MLR  potential ...
           IF(p.LE.(MMLR(NCMM)-MMLR(1))) WRITE(6,616) p,NCMM,MMLR(NCMM),
      1                                                        MMLR(1)
-c** First define array of exponent values with uncertainties defined by 
+c** First define array of exponent values with uncertainties defined by
 c  the assumption that all potential values have equal uncertainties UNC
 c
 c... Begin by determining uLR(Re) and  betaINF
@@ -382,7 +468,7 @@ c ... for Aubert-Frecon 2x2 case ...
                   T1= (0.5d0*CmVAL(1)+ (C6adj-CmVAL(4))*RE3)*RE3/3.d0
                   T1= T1+ (CmVAL(5)- CmVAL(6))*RE8/3.d0
                   T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
-                  ULRe= 0.5d0*( -CmVAL(2)+ RE3*(1.5d0*CmVAL(1) 
+                  ULRe= 0.5d0*( -CmVAL(2)+ RE3*(1.5d0*CmVAL(1)
      1           + RE3*(C6adj + CmVAL(4)))) + 0.5d0*T0 + C9adj*RE6*RE3
 c   ...  now add C8 terms ...
                   ULRe= ULRe+ 0.5d0*(CmVAL(5)+ CmVAL(6))*RE8
@@ -492,7 +578,7 @@ c... then create partial derivative array for linearized fit ...
                       ENDDO
                   ENDIF
 c%%%% printout for testing  polynomial exponent
-c%%            if(i.eq.1) write(8,700) 
+c%%            if(i.eq.1) write(8,700)
 c%700 format('  RTP        yp       yp^{eq}       VTP(i)          uLR',
 c%   1 10x,' beta(i)' )
 c%%            write(8,702) rtp(i),yp,ypRE,vtp(i),ULR,betay(i),
@@ -512,13 +598,13 @@ c%%%%
                   ENDIF
               ENDIF
           IF(APSE.GT.0) THEN
-c** For Pashov spline-exponent, use spline through linearized input 
-c  exponent values to define initial trial spline values of \beta(i) 
+c** For Pashov spline-exponent, use spline through linearized input
+c  exponent values to define initial trial spline values of \beta(i)
 c  at the specified  xPSE(i) 0:qvalues !
               NxPSE= NTP
               DO  I= 1,NTP
                   IF(DABS(betay(I)).LT.1.d-04) THEN
-c... If  xPSE\approx 0.0, collapse the xPES array to omit this point ... 
+c... If  xPSE\approx 0.0, collapse the xPES array to omit this point ...
                       NxPSE= NxPSE-1
                       NTP= NTP-1
                       DO  J= I,NxPSE
@@ -540,12 +626,12 @@ cc699 FORMAT('  R=', f10.6,'   xPSE=',F12.9,'   beyay=', f12.9, f15.9)
                   XX= ypPSE(I)
                   IF(I.LT.NPARM) rPSE(I)= AREF*((1.d0 + XX)/
      1                                  (1.d0 - XX))**(1.d0/DFLOAT(p))
-c... Now, use a spline through the exponent values defined by the input 
-c    points to generate values of that exponent at the desired 
+c... Now, use a spline through the exponent values defined by the input
+c    points to generate values of that exponent at the desired
 c    spline-definition points
                   PV(I)= 0.d0
                   DO  m= 1, NxPSE
-                      PV(I)= PV(I) + 
+                      PV(I)= PV(I) +
      1               Scalc(XX,m,NxPSE,xPSE,rKL,MXDATA)*betay(m)/xPSE(m)
                       ENDDO
                   ENDDO
@@ -586,7 +672,7 @@ c-----------------------------------------------------------------------
       IF(PSEL.EQ.3) THEN
           BETA(0)= 1.d0
           WRITE(6,611) BETA(0)
-c ... NOTE need iteration to determine self-consistent  beta(0)  value 
+c ... NOTE need iteration to determine self-consistent  beta(0)  value
 c    First generate  A & B  from input Re, De and trial beta(0)
           ITER= 0
    40     ULRe= 0.d0
@@ -720,7 +806,7 @@ c ..... On first run, free VMIN and the  \beta_i
               ENDIF
 c ... the, if appropriate, set  Re  free too ...
           IF(IFXRe.LE.0) THEN
-              NDGF= NDGF- 1 
+              NDGF= NDGF- 1
               IFXP(Nbeta+1)= 0
               CALL NLLSSRR(NTP,NPARM,MXPARM,JROUND,ROBUST,prNLL,IFXP,
      1                        VTP,uVTP,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
@@ -840,9 +926,9 @@ c ... and finally ... fit to all three of  VMIN, De and Re
               IF(RREF.LE.0.d0) WRITE(6,628) NNAME,p,NS,NL,DRMSD,
      1                       (j,ypPSE(j),j,PV(j),PU(j),PS(j),j=1,Nbeta)
             ENDIF
-          IF(PSEL.EQ.3) BETA(0)= PV(1) 
-          WRITE(6,662) PV(Nbeta+1),PU(Nbeta+1),PS(Nbeta+1) 
-          WRITE(6,630) PV(Nbeta+2),PU(Nbeta+2),PS(Nbeta+2) 
+          IF(PSEL.EQ.3) BETA(0)= PV(1)
+          WRITE(6,662) PV(Nbeta+1),PU(Nbeta+1),PS(Nbeta+1)
+          WRITE(6,630) PV(Nbeta+2),PU(Nbeta+2),PS(Nbeta+2)
           WRITE(6,660) PV(Nbeta+3),PU(Nbeta+3),PS(Nbeta+3)
 ccc Print [calc.-obs.]
           IF(prDIFF.gt.0) WRITE(6,730) (RTP(I),YD(I),YD(I)/uVTP(I),
@@ -850,9 +936,9 @@ ccc Print [calc.-obs.]
   730 FORMAT(1x,39('==')/3x,3(3x,'RTP',4x,'[c-o] [c-o]/unc')/
      1  1x,39('--')/(1x,3(f10.5,f8.4,f7.2)))
 ccc
-          IF(IFXRe.LE.0) Re= PV(Nbeta+1) 
+          IF(IFXRe.LE.0) Re= PV(Nbeta+1)
           IF(IFXDe.LE.0) De= PV(Nbeta+2)
-          IF(IFXVMIN.LE.0) VMIN= PV(Nbeta+3) 
+          IF(IFXVMIN.LE.0) VMIN= PV(Nbeta+3)
           IF(PSEL.EQ.3) beta(0)= PV(1)
           ENDIF
 
@@ -894,7 +980,7 @@ cc            IF(IFXRe.LE.0) NPARM= NPARM+ 1
      1                                                      PS(Nbeta+1)
                   ENDIF
 c.... then, proceed with fit to non-linear form
-              NPARM= Nbeta+2 
+              NPARM= Nbeta+2
               PV(Nbeta+2)= Re
               IFXDe= 1
               IF(IFXRe.LE.0) THEN
@@ -917,7 +1003,7 @@ c... If Re is to be free, first optimize it in fit to initial form
                       ENDDO
                   ENDIF
 c ... IFXDe is a flag indicating fit to final  c0*y**2(1 + c1*y + ... )
-              IFXDe= 0 
+              IFXDe= 0
               CALL NLLSSRR(NTP,NPARM,MXPARM,IROUND,ROBUST,prNLL,IFXP,
      1                        VTP,uVTP,YD,PV,PU,PS,CM,TSTPS,TSTPU,DSE)
               WRITE(6,658) p,nbeta,DSE,(i-1,PV(i),PU(i),PS(i),
@@ -930,11 +1016,11 @@ c ... IFXDe is a flag indicating fit to final  c0*y**2(1 + c1*y + ... )
           NPARM= NPARM+ 1
           ENDIF
 c======================================================================
-c*** Step inward and check whether the repulsive inner potential wall 
+c*** Step inward and check whether the repulsive inner potential wall
 c    has an inflection point or turnover.
       IF(APSE.LE.0) THEN
           IF(NTP.GE.MXDATA) THEN
-              WRITE(6,674)  NTP,MXDATA 
+              WRITE(6,674)  NTP,MXDATA
               GOTO 90
               ENDIF
           RH= RTP(1)*1.0d-2
@@ -955,9 +1041,9 @@ c    has an inflection point or turnover.
               RTP(J)= RR
               IF(RTP(J).LT.0.1d0) EXIT
              CALL DYIDPJ(J,MXDATA,NPARM,IFXP,VV,PV,PU,PS,RR)
-c 
-c     write(6,666) rr,vv, (vv-vb)/RH 
-c 666 format(f8.4,3f16.4) 
+c
+c     write(6,666) rr,vv, (vv-vb)/RH
+c 666 format(f8.4,3f16.4)
 c
               IF(INFL.GT.0) THEN
                   IF(VV.LT.VB) THEN
@@ -982,7 +1068,7 @@ c** If desired, print fitted potential at NPR points starting at r=RPR1
           VB= 0.d0
           J= NTP+ 1
           DO  I= 1, NPR
-              RTP(J)= RPR1 + (I-1)*dRPR 
+              RTP(J)= RPR1 + (I-1)*dRPR
               CALL DYIDPJ(J,MXDATA,NPARM,IFXP,VV,PV,PU,PS,RR)
               SL= (VV-VB)/dRPR
               dSL= (SL-SLB)/dRPR
@@ -1001,46 +1087,46 @@ c** If desired, print fitted potential at NPR points starting at r=RPR1
 c-----------------------------------------------------------------------
   616 FORMAT(//' !!! WARNING !!! Should set   p=',i2,' .GT. [MMLR(',i1,
      1 ')=',I2,' - MMLR(1)=',i2,']  CAUTION !!!!'/)
-  619 FORMAT(' Linearized fit uses    beta(INF)=',f12.8) 
+  619 FORMAT(' Linearized fit uses    beta(INF)=',f12.8)
   620 FORMAT(/' Linearized ',A4,'{p=',i1,'; NL=',i2,'} fit yields   DSE=
-     1',1Pd9.2/(3x,a4,'_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=', 
+     1',1Pd9.2/(3x,a4,'_{',i2,'}=',d19.11,' (+/-',d8.1,')   PS=',
      2 d8.1))
   621 FORMAT(/' Linearized ',A4,'{p=',i1,', q=',i2,'; Rref=',f5.2,
      1 '; NL=',i2,'} fit yields   DSE=',1Pd9.2/(3x,a4,'_{',i2,'}=',
      2  d19.11,' (+/-',d8.1,')   PS=',d8.1))
   623 FORMAT(/' Linearized ',A4,'{p=',i1,', q=',i2,';  Rref=Re;  NL=',
-     1 i2,'} fit yields   DSE=',1Pd9.2/(3x,a4,'_{',i2,'}=',d19.11, 
+     1 i2,'} fit yields   DSE=',1Pd9.2/(3x,a4,'_{',i2,'}=',d19.11,
      2 ' (+/-',d8.1,')   PS=',d8.1))
   617 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref= Re  ; NL=',I2,
-     1  '} potential:',10x,'dd=',1Pd12.5/ 
+     1  '} potential:',10x,'dd=',1Pd12.5/
      2 '  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1,3x,'DSE=',
      3  D9.2/('  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1))
   618 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,'; NL=',I2,
-     1 '} potential:',10x,'dd=',1Pd12.5/ 
+     1 '} potential:',10x,'dd=',1Pd12.5/
      2 '  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1,3x,'DSE=',
      3   D12.5/('  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1))
   622 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',i2,'; Rref=',f5.2,
-     1 '; NL=',I2,'} potential:    dd=',1Pd12.5/ 
-     2 '  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1,3x,'DSE=', 
+     1 '; NL=',I2,'} potential:    dd=',1Pd12.5/
+     2 '  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1,3x,'DSE=',
      3  D12.5/('  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1))
   722 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',i2,'; Rref=',f5.2,
-     1 ';  NL=',I2,'} potential:   dd=',1Pd12.5/d20.12,I3,9x,  
-     2 '% De IFXDe'/d20.12,I3,9x,'% Re IFXRe'//2I3,2I4,D11.2,7x, 
+     1 ';  NL=',I2,'} potential:   dd=',1Pd12.5/d20.12,I3,9x,
+     2 '% De IFXDe'/d20.12,I3,9x,'% Re IFXRe'//2I3,2I4,D11.2,7x,
      3 '% APSE Nbeta nPB nQB RREF'/(d20.12,'  0'))
   726 FORMAT(/' Direct fit to ',A4,'{p=',i1,',  Rref=',f5.2,';  NL=',
      1  I2,'} potential:',8x,'dd=',1Pd12.5/d20.12,I3,9x,'% De IFXDe'/
      1  d20.12,I3,9x,'% Re IFXRe'//2I3,2I4,D11.2,7x,'% APSE Nbeta nPB nQ
      3B RREF'/(d20.12,'  0'))
   624 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',I2,'; Rref= Re  ; NL=
-     1',I2,'} potential:    dd=',1Pd12.5/ 
-     2 '  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1,3x'DSE=', 
+     1',I2,'} potential:    dd=',1Pd12.5/
+     2 '  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1,3x'DSE=',
      3  D9.2/('  beta_{',i2,'}=',d20.12,' (+/-',d8.1,')   PS=',d8.1))
   724 FORMAT(/' Direct fit to ',A4,'{p=',i1,', q=',I2,'; Rref= Re  ;  NL
-     1=',I2,'} potential:   dd=',1Pd12.5/d20.12,I3,9x,'% De IFXDe'/ 
+     1=',I2,'} potential:   dd=',1Pd12.5/d20.12,I3,9x,'% De IFXDe'/
      2  d20.12,I3,9x,'% Re IFXRe'//2I3,2I4,D11.2,7x,'% APSE Nbeta nPB nQ
      3B RREF'/(d20.12,'  0'))
   728 FORMAT(/' Direct fit to ',A4,'{p=',i1,',  Rref= Re  ;  NL=',I2,
-     1  '} potential:',8x,'dd=',1Pd12.5/d20.12,I3,9x,'% De IFXDe'/ 
+     1  '} potential:',8x,'dd=',1Pd12.5/d20.12,I3,9x,'% De IFXDe'/
      2  d20.12,I3,9x,'% Re IFXRe'//2I3,2I4,D11.2,7x,'% APSE Nbeta nPB nQ
      3B RREF'/(d20.12,'  0'))
   626 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref=',f5.2,' ; NS=',i2,
@@ -1049,7 +1135,7 @@ c-----------------------------------------------------------------------
   628 FORMAT(/' Direct fit to ',A4,'{p=',i1,'; Rref= Re ; NS=',i2,
      1  ', NL=',I2,'}  potential:   DSE=',1Pd9.2/(' ypPSE{',i2,'}=',
      20PF11.7,'   beta_{',i2,'}=',1Pd18.10,'(+/-',d8.1,')   PS=',d8.1))
-  630 FORMAT(8x,'De =',f13.6,' (+/-',f12.6,')      PS=',1pd8.1) 
+  630 FORMAT(8x,'De =',f13.6,' (+/-',f12.6,')      PS=',1pd8.1)
   632 FORMAT('  Use exponent expansion variable:   y_',I1,'(r)= [r^',I1,
      1 ' -',f7.4,'^',I1,']/[r^',I1,' +',f7.4,'^',I1,']' )
   633 FORMAT(' Use exponent expansion variable:   y_',I1,'(r)= [r^',I1,
@@ -1071,10 +1157,10 @@ c-----------------------------------------------------------------------
      1  23x,'DSE=',1Pd9.2/ (5x,'c_{',i2,'} =',d18.10,' (+/-',d8.1,')',
      2  4x,'PS=',d8.1))
   660 FORMAT(6x,'VMIN =',f13.5,' (+/-',f12.6,')      PS=',1pd8.1)
-  662 FORMAT(8x,'Re =',f13.9,' (+/-',f12.9,')      PS=',1pd8.1) 
+  662 FORMAT(8x,'Re =',f13.9,' (+/-',f12.9,')      PS=',1pd8.1)
   670 FORMAT(1x,39('--')/ ' *** CAUTION *** inner wall has inflection at
      1   R=',F6.3,'   V=',1PD12.4)
-  672 FORMAT(28x'and turns over at   R=',F6.3,'   V=',1PD12.4) 
+  672 FORMAT(28x'and turns over at   R=',F6.3,'   V=',1PD12.4)
   674 FORMAT(/' *** {NTP=',I4,'}.GE.{MXDATA=',i4,'}: array size prevents
      1 inner-wall curvature check')
   999 STOP
@@ -1082,16 +1168,25 @@ c-----------------------------------------------------------------------
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
+!> Subroutine to calculate potential function value \f$ YC \f$ at distance:
+!!  \f[
+!!      RDIST= RTP(IDAT)
+!!  \f]
+!! and its partial derivatives with respect to the various potential parameters.
+!!
+!! If \f$ IDAT \leq \f$ 1, then the subroutine will generate a new set of internal potential variables.
+!!
+!! If \f$ IDAT \f$ > 1, then the subroutine will use SAVED values.
       SUBROUTINE DYIDPJ(IDAT,NDATA,NPARM,IFXP,YC,PV,PD,PS,RMSR)
 c** Subroutine to calculate potential function value YC at distance
 c  RDIST= RTP(IDAT), and its partial derivatives w.r.t. the various
-c  potential parameters.  If  IDAT.LE.1  generate a new set of 
+c  potential parameters.  If  IDAT.LE.1  generate a new set of
 c internal potential variables, while if  IDAT > 1  use SAVED values
 c... [Must ensure that calculations based on the current UPDATED PV(j)]
 c------------------------------------------------------------------------
-      INTEGER MXDATA, MXPARM, MXMLR 
-      PARAMETER (MXDATA=1501, MXPARM=43, MXMLR= 15) 
-      INTEGER  i,j,m,IDAT,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,JFXVMIN 
+      INTEGER MXDATA, MXPARM, MXMLR
+      PARAMETER (MXDATA=1501, MXPARM=43, MXMLR= 15)
+      INTEGER  i,j,m,IDAT,NPARM,NDATA, IFXP(MXPARM),JFXRe,JFXDe,JFXVMIN
       REAL*8  YC,PV(NPARM),PD(NPARM),PS(NPARM),DM(MXMLR),DMP(MXMLR),
      1 DMPP(MXMLR),RMSR,RTPp,RTPq,Rep,AREF,AREFp,AREFq,ype,dype,Scalc,
      2 betaINF,yp,yq,yPOW,XP,XPW,DER,TCM,UM,TTMM,DERP,SUM,DSUM,AA,BB,
@@ -1111,11 +1206,11 @@ c-----------------------------------------------------------------------
      1  betaINF,BETA0, AA,BB,ULRe,dULRe
 c=======================================================================
       IF(ABS(IDAT).LE.1) THEN
-          JFXRe= IFXP(Nbeta+1) 
-          JFXDe= IFXP(Nbeta+2) 
+          JFXRe= IFXP(Nbeta+1)
+          JFXDe= IFXP(Nbeta+2)
           JFXVMIN= IFXP(Nbeta+3)
           ENDIF
-      RDIST= RTP(IDAT) 
+      RDIST= RTP(IDAT)
       DO  j=1,NPARM
           PD(j)= 0.d0
           ENDDO
@@ -1124,29 +1219,29 @@ c** For case of an  EMO_p  potential
 c-----------------------------------------------------------------------
       IF(PSEL.EQ.1) THEN
           IF(ABS(IDAT).LE.1) THEN
-              IF(JFXRe.LE.0) Re= PV(Nbeta+1) 
+              IF(JFXRe.LE.0) Re= PV(Nbeta+1)
               IF(JFXDe.LE.0) De= PV(Nbeta+2)
-              IF(JFXVMIN.LE.0) VMIN= PV(Nbeta+3) 
-              AREF= RREF 
+              IF(JFXVMIN.LE.0) VMIN= PV(Nbeta+3)
+              AREF= RREF
               IF(RREF.LE.0) AREF= Re
-              AREFp= AREF**p 
+              AREFp= AREF**p
               ENDIF
           RTPp= RDIST**p
-          yp= (RTPp - AREFp)/(RTPp + AREFp) 
-          yPOW= 1.d0 
-          SUM= PV(1) 
-          DSUM= 0.d0 
+          yp= (RTPp - AREFp)/(RTPp + AREFp)
+          yPOW= 1.d0
+          SUM= PV(1)
+          DSUM= 0.d0
           IF(Nbeta.GE.2) THEN
               DO  j= 2,Nbeta
-                  IF(RREF.LE.0.d0) DSUM= DSUM+ (j-1)*PV(j)*yPOW 
+                  IF(RREF.LE.0.d0) DSUM= DSUM+ (j-1)*PV(j)*yPOW
                   yPOW= yPOW*yp
-                  SUM= SUM+ yPOW*PV(j) 
+                  SUM= SUM+ yPOW*PV(j)
                   ENDDO
               ENDIF
-          XP= DEXP(-SUM*(RDIST- Re)) 
-          YC= De*(1.d0 - XP)**2 + VMIN 
-          DER= 2.d0*De*(1.d0- XP)*XP 
-          DERP= DER*(RDIST- Re) 
+          XP= DEXP(-SUM*(RDIST- Re))
+          YC= De*(1.d0 - XP)**2 + VMIN
+          DER= 2.d0*De*(1.d0- XP)*XP
+          DERP= DER*(RDIST- Re)
           DO  j= 1, Nbeta
               PD(j)= DERP
               DERP= DERP*yp
@@ -1167,29 +1262,29 @@ c  For the case of an  MLR_{p}  potential ...
 c-----------------------------------------------------------------------
       IF(PSEL.EQ.2) THEN
           IF(ABS(IDAT).LE.1) THEN
-              IF(JFXRe.LE.0) Re= PV(Nbeta+1) 
-              IF(JFXDe.LE.0) De= PV(Nbeta+2) 
-              IF(JFXVMIN.LE.0) VMIN= PV(Nbeta+3) 
+              IF(JFXRe.LE.0) Re= PV(Nbeta+1)
+              IF(JFXDe.LE.0) De= PV(Nbeta+2)
+              IF(JFXVMIN.LE.0) VMIN= PV(Nbeta+3)
               AREF= RREF
               IF(RREF.LE.0.d0) AREF= Re
-              AREFp= AREF**p 
-              AREFq= AREF**q 
-              Rep= Re**p 
+              AREFp= AREF**p
+              AREFq= AREF**q
+              Rep= Re**p
               IF((NCMM.GE.4).AND.(MMLR(2).LE.0)) THEN
 c** For Aubert-Frecon based  coupled-states ULR(r) for Li(2S)+Li(2P)
-                  RE3= 1.d0/Re**3 
-                  RE6= RE3*RE3 
-                  RE8= RE6/Re**2 
-                  C6adj= CmVAL(3) + CmVAL(1)**2/(4.d0*DE) 
+                  RE3= 1.d0/Re**3
+                  RE6= RE3*RE3
+                  RE8= RE6/Re**2
+                  C6adj= CmVAL(3) + CmVAL(1)**2/(4.d0*DE)
                   C9adj= 0.5d0*CmVAL(1)*C6adj/De
                   IF(MMLR(2).EQ.0) THEN
 c ... for Aubert-Frecon Li2(A) 2x2 {3,0,6,6,8,8} case ...
                       T1= (0.5d0*CmVAL(1)+ (C6adj- CmVAL(4))*RE3)
      1                                                       *RE3/3.d0
                       IF(NCMM.GT.4) THEN
-                          T1= T1+ (CmVAL(5)- CmVAL(6))*RE8/3.d0 
+                          T1= T1+ (CmVAL(5)- CmVAL(6))*RE8/3.d0
                       ENDIF
-                  T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2) 
+                  T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
                   ULRe= 0.5d0*( - CmVAL(2) + (1.5d0*CmVAL(1)
      1         + (C6adj + CmVAL(4))*RE3)*RE3) + 0.5d0*T0 + C9adj*RE6*RE3
                       IF(NCMM.GT.4)
@@ -1219,50 +1314,50 @@ c** For normal inverse-power sum MLR/MLJ case, with or without damping
                   IF(rhoAB.GT.0.d0) CALL dampF(Re,rhoAB,NCMM,MMLR,sVSR2,
      1                                         IDSTT,KDER,DM,DMP,DMPP)
                   ULRe= 0.d0
-                  dULRe= 0.d0 
+                  dULRe= 0.d0
                   DO  m= 1,NCMM
-                      T0= CmVAL(m)/Re**MMLR(m) 
-                      IF(rhoAB.GT.0.d0) T0= T0*DM(m) 
-                      ULRe= ULRe + T0 
+                      T0= CmVAL(m)/Re**MMLR(m)
+                      IF(rhoAB.GT.0.d0) T0= T0*DM(m)
+                      ULRe= ULRe + T0
                       dULRe= dULRe - T0*MMLR(m)/Re
-                      IF(rhoAB.GT.0.d0) dULRe= dULRe + T0*DMP(m)/DM(m) 
+                      IF(rhoAB.GT.0.d0) dULRe= dULRe + T0*DMP(m)/DM(m)
                       ENDDO
                 ENDIF
               betaINF= DLOG(2.d0*De/ULRe)
               IF(IDSTT.GT.1) THEN
 c** For MLR with DS(s=-1/2) damping constrained to have C1= Z1*Z2= IDSTT
 c   then fix the  beta(N) value ...
-                  BETA0= 0.d0 
+                  BETA0= 0.d0
                       DO  m= 1,NCMM
                           BETA0= BETA0 + CmVAL(m)*DSQRT(3.69d0*rhoAB/
      1                                         MMLR(m))**(2*MMLR(m)-1)
                       ENDDO
-                  C1tst= BETA0/uLre 
-                  BETAN= DLOG(DSQRT(4.d0*De*IDSTT*116140.97d0)/BETA0) 
-                  BETA0= DLOG(DSQRT(IDSTT*116140.97d0/De)*uLRe/BETA0) 
+                  C1tst= BETA0/uLre
+                  BETAN= DLOG(DSQRT(4.d0*De*IDSTT*116140.97d0)/BETA0)
+                  BETA0= DLOG(DSQRT(IDSTT*116140.97d0/De)*uLRe/BETA0)
                   C1tst= De*(DEXP(BETA0)*C1tst)**2
 c*** For constrained C1/r case, now define  beta(N)
-                  BETAN= -0.5D0*BETAN*(-1)**Nbeta 
-                  T0= 1.d0 
+                  BETAN= -0.5D0*BETAN*(-1)**Nbeta
+                  T0= 1.d0
                   DO  j= Nbeta-1, 1, -1
-                      BETAN= BETAN + T0*PV(j) 
-                      T0= -T0 
+                      BETAN= BETAN + T0*PV(j)
+                      T0= -T0
                       ENDDO
                   PV(Nbeta)= BETAN
-                  IFXP(Nbeta)= 1 
+                  IFXP(Nbeta)= 1
                   WRITE(6,666) C1tst/116140.97d0, Nbeta,PV(Nbeta)
   666 FORMAT(/'  Test  C1(sr)=',1Pd10.3,'    PV(',i3,')=',1PD16.8/)
                   ENDIF
               ENDIF
-          RTPp= RDIST**p 
-          RTPq= RDIST**q 
+          RTPp= RDIST**p
+          RTPq= RDIST**q
           yp= (RTPp - AREFp)/(RTPp + AREFp)
           yq= (RTPq - AREFq)/(RTPq + AREFq)
           ype= (RTPp - Rep)/(RTPp + Rep)
           IF(APSE.GT.0) THEN
-c*** Case of Pashov natural spline exponent ....  
-c... Now, use a spline through the exponent values defined by the input 
-c    points to generate values of that exponent at the desired 
+c*** Case of Pashov natural spline exponent ....
+c... Now, use a spline through the exponent values defined by the input
+c    points to generate values of that exponent at the desired
 c    spline-definition points
               XP= 0.d0
               DO  J= 1, Nbeta
@@ -1300,7 +1395,7 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
                   IF(NCMM.GT.4) ULR= ULR+0.5d0*(CmVAL(5)+ CmVAL(6))*RTP8
 c... SKIP Re derivative corrections for all?
                   T0P= (9.d0*T1-CmVAL(2))/T0
-c             dULRdRe= -RTP3*(0.25d0*CmVAL(1)*(9.d0 + T0P) 
+c             dULRdRe= -RTP3*(0.25d0*CmVAL(1)*(9.d0 + T0P)
 c    1      + RTP3*(CmVAL(3)*(3.d0 + T0P) + CmVAL(4)*(3.d0 - T0P)))/Re
                   ENDIF
               IF(MMLR(2).EQ.-1) THEN
@@ -1322,7 +1417,7 @@ c** For normal inverse-power sum MLR/MLJ case, with or without damping
                   ULR= ULR + T0
                   ENDDO
               ENDIF
-          XPW= DEXP(-XP*ype) * ULR/ULRe 
+          XPW= DEXP(-XP*ype) * ULR/ULRe
           YC= De*(1.d0 - XPW)**2 + VMIN
           DER= 2.d0*De*(1.d0- XPW)*XPW
           yPOW= DER*ype*(1.d0- yp)
@@ -1369,7 +1464,7 @@ c-----------------------------------------------------------------------
               dULRe= 0.d0
               d2ULRe= 0.d0
 c-----------------------------------------------------------------------
-c** Evaluate uLR & its first 2 deriv. at  Re ... 
+c** Evaluate uLR & its first 2 deriv. at  Re ...
               KDER=2
               IF(rhoAB.GT.0.d0) CALL dampF(Re,rhoAB,NCMM,MMLR,sVSR2,
      1                                         IDSTT,KDER,DM,DMP,DMPP)
@@ -1465,7 +1560,7 @@ c-----------------------------------------------------------------------
           IF(JFXRe.LE.0) THEN
               PD(Nbeta+2)= -DSUM* (p/Re)*Rep*RTPp*(as+bs)/
      1                                            (as*RTPp +bs*Rep)**2
-              ENDIF 
+              ENDIF
           ENDIF
 c=======================================================================
 c%%%%%%%  Optional printout for testing
@@ -1484,10 +1579,15 @@ c%%%%%%%
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
+!> At the position \f$ 'x' \f$, Scalc is returned as the value of the \f$ m^{th} \f$
+!!  of the \f$ 'n' Sm(x) \f$ function defining a natural cubic spline through the
+!!  mesh points located at \f$ x = y(x_i) \f$, for \f$ i = 1, n\f$.
+!!
+!! LMAX specifies the maximum number of mesh points \f$ x = y(x_i) \f$ allowed by the calling program.
       double precision function Scalc(x,m,n,y,rKL,LMAX)
-c** At the position 'x', Scalc is returned as the value of the m'th 
+c** At the position 'x', Scalc is returned as the value of the m'th
 c  of the 'n' Sm(x) function defining a natural cubic spline through the
-c  mesh points located at  x= y(x_i), for i=1,n.  LMAX specifies the 
+c  mesh points located at  x= y(x_i), for i=1,n.  LMAX specifies the
 c  maximum number of mesh points x= y(x_i) allowed by the calling program
 c---------------------------------------------------------------------
       INTEGER  LMAX,I,K,KK,M,N
@@ -1510,7 +1610,7 @@ c... select interval
       y1=y(k-1)
       y2=y(k)
       Scalc= 0.d0
-      IF(kk.eq.0) 
+      IF(kk.eq.0)
      1    Scalc= rKL(m,k)*((y1-x)*(((y1-x)/(y1-y2))**2-1)/6)*(y1-y2)
      2         + rKL(m,k-1)*((x-y2)*(((x-y2)/(y1-y2))**2-1)/6)*(y1-y2)
       IF(k.EQ.m) Scalc= Scalc + (y1-x)/(y1-y2)
@@ -1530,7 +1630,7 @@ c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
       double precision function Sprime(x,m,n,y,rKL,LMAX)
-c** At the position 'x', evaluate the derivative w.r.t. x of the m'th 
+c** At the position 'x', evaluate the derivative w.r.t. x of the m'th
 c  Sm(x) function contributing the definition of the the natural cubic
 c  spline defined by function values at the  n  points  y(i) [i=1,n]
       INTEGER i,k,kk,m,n,LMAX
@@ -1555,8 +1655,8 @@ c  spline defined by function values at the  n  points  y(i) [i=1,n]
       Sprime= 0.d0
       if(kk.eq.0) Sprime= (del-3.d0*(y1-x)**2/del)*rKL(m,k)/6.d0 +
      1                        (3.d0*(x-y2)**2/del-del)*rKL(m,k-1)/6.d0
-      IF(k-1.eq.m) Sprime= Sprime + 1.d0/del 
-      IF(k.eq.m) Sprime= Sprime - 1.d0/del 
+      IF(k-1.eq.m) Sprime= Sprime + 1.d0/del
+      IF(k.eq.m) Sprime= Sprime - 1.d0/del
 ccc     if(kk.eq.0) then
 ccc         Sprim=ndirac(k-1,m)/del-ndirac(k,m)/del+
 ccc  +                    (del-3*(y1-x)**2/del)*rKL(m,k)/6+
@@ -1569,6 +1669,11 @@ ccc       end if
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
+!> Call this subroutine with list of the \f$ 'n' \f$ spline \f$ x_i \f$ values in array
+!!   \f$ 'x' \f$ with maximum dimension \f$ 'LMAX' \f$ and it will return the \f$ LMAX \f$ x \f$ LMAX \f$
+!!   array of \f$ 'rKL' \f$ coefficients used for generating the \f$ 'n' S_n(x) \f$
+!!   spline coefficient functions.
+!!
       subroutine Lkoef(n,x,A,LMAX)   
 c** Call this subroutine with list of the 'n' spline x_i values in array 
 c   'x' with maximum dimension 'LMAX' and it will return the LMAX x LMAX
