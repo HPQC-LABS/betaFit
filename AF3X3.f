@@ -1,26 +1,4 @@
-!> Calculates the 3x3 spin-orbit coupling matrix using the formula:
-!!  \f[ M_{LR}^{ret} =
-!!      \begin{pmatrix}
-!!      -\frac{1}{3}(\frac{C_3^\sum f_{ret}^\sum}{r^3} + \frac{C_6^{\sum{},adj}}{r^6} + \frac{C_8^\sum}{r^8})
-!!      &
-!!      \frac{\sqrt{2}}{3}(\frac{C_3^\sum f_{ret}^\sum}{r^3} + \frac{C_6^{\sum{},adj}}{r^6} + \frac{C_8^\sum}{r^8})
-!!      &
-!!      \frac{1}{\sqrt{6}}\frac{C_3^\sum f_{ret}^\prod}{r^3} \\
-!!
-!!      \frac{\sqrt{2}}{3}(\frac{C_3^\sum f_{ret}^\sum}{r^3} + \frac{C_6^{\sum{},adj}}{r^6} + \frac{C_8^\sum}{r^8})
-!!      &
-!!      -\frac{\sqrt{2}}{3}(\frac{C_3^\sum f_{ret}^\sum}{r^3} + \frac{C_6^{\sum{},adj}}{r^6} + \frac{C_8^\sum}{r^8}) + \Delta E
-!!      &
-!!      \frac{1}{2\sqrt{3}}\frac{C_3^\sum f_{ret}^\prod}{r^3} \\
-!!
-!!      \frac{1}{\sqrt{6}}\frac{C_3^\sum f_{ret}^\prod}{r^3}
-!!      &
-!!      \frac{1}{2\sqrt{3}}\frac{C_3^\sum f_{ret}^\prod}{r^3}
-!!      &
-!!      \Delta E
-!!      \end{pmatrix}
-!!  \f]
-!! where \f$ r \f$ (RDIST) is the internuclear distance, \f$\Delta E \f$ is the splin-orbit splitting, \f$ C_n \f$ is Cn, and De is the depth of the potential \f$ V(R) \f$ at equilibrium.
+!> Calculates the 3x3 spin-orbit coupling matrix using the formula in Dattani & LeRoy 2011, where \f$ r \f$ (RDIST) is the internuclear distance, \f$\Delta E \f$ is the splin-orbit splitting, \f$ C_n \f$ is Cn, and De is the depth of the potential \f$ V(R) \f$ at equilibrium.
 !!
 !! Then, prints out the lowest eigenvalue as \f$ u_{LR} \f$ (long-range function) as well as its derivative with respect to \f$ C_3 \f$ (DEIGM1), \f$ C_6 \f$ (DEIGM3), \f$ C_8 \f$ (DEIGM5), internuclear distance (DEIGR), and Depth of potential \f$ V(R) \f$ at equilibrium (DEIGDe).
 !!
