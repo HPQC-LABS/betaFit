@@ -1,4 +1,46 @@
-c***********************************************************************
+!> Subroutine to generate values '\f$ Dm \f$' and its first `\f$ Dmp \f$' and second '\f$ Dmpp \f$'
+!! derivatives with respect to \f$ R \f$ of the chosen form of the damping function, for  \f$ m = 1 \f$ to \f$ MMAX \f$.
+!!
+!! Upon Input
+!!-----------------------------------------------------------------------
+!! \f$ r \f$ is the radial distance in Angsroms.
+!!
+!! \f$ RHOab \f$ is the 'universal' scaling coefficient used for systems other than \f$ H_2 \f$:
+!!  \f[
+!!      RHOab = 2\frac{RHOa*RHOb}{RHOa+RHOb}
+!!  \f]
+!! where \f$ RHOa = \left(\frac{I_p^A}{I_p^H}\right)^{0.66} \f$, \f$ I_p^A \f$ is the ionization potential of atom A, and \f$ I_p^H \f$ is the ionization potential of atomic hydrogen.
+!!
+!! \f$ NCMM \f$ is the number of inverse-power terms to be considered.
+!!
+!! \f$ MMLR \f$ are the powers of the \f$ NCMM \f$ inverse-power terms.
+!!
+!! \f$ IDF \f$ requires damping to be defined such that:
+!! \f[
+!!      \frac{Dm(r)}{r^m} \rightarrow r^{\frac{IDF}{2}}
+!! \f]
+!!
+!! \f$ IDSTT \f$ specifies damping function type:
+!!
+!!  If IDSTT > 0, use Douketis et al. form.
+!!
+!!  If IDSTT \f$ \leq \f$ 0, use Tang-Toennies form.
+!!
+!! \f$ KDER \f$:
+!!
+!!  If KDER > 0, the first derivative is also calculated.
+!!
+!!  If KDER > 1  the second derivative is also calculated.
+!!
+!! Upon Output
+!!-----------------------------------------------------------------------
+!!  \f$ DM(m) \f$ - The value of the damping function for the long range term (\f$ m = 1, NCMM \f$):
+!!  \f[
+!!      \frac{C_{MMLR(m)}}{r^{MMLR(m)}}
+!!  \f]
+!!  \f$ DMP(m) \f$ - The first derivative of the damping function \f$ DM(m) \f$
+!!
+!!  \f$ DMPP(m) \f$ - The second derivative of the damping function \f$ DM(m) \f$
       SUBROUTINE dampF(r,rhoAB,NCMM,MMLR,IDF,IDSTT,KDER,DM,DMP,DMPP)
 c** Subroutine to generate values 'Dm' and its first `Dmp' and second
 c   'Dmpp' derivatives w.r.t. R of the chosen form of the damping

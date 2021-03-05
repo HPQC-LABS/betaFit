@@ -1,11 +1,21 @@
-c=======================================================================
-      SUBROUTINE AF3X3potRet(RDIST,DELTAE,C3val,C6val,C8val,De,ULR,
+!> Calculates the 3x3 spin-orbit coupling matrix using the formula in Dattani & LeRoy 2011, where \f$ r \f$ (RDIST) is the internuclear distance, \f$\Delta E \f$ is the splin-orbit splitting, \f$ C_n \f$ is Cn, and De is the depth of the potential \f$ V(R) \f$ at equilibrium.
+!!
+!! Then, prints out the lowest eigenvalue as \f$ u_{LR} \f$ (long-range function) as well as its derivative with respect to \f$ C_3 \f$ (DEIGM1), \f$ C_6 \f$ (DEIGM3), \f$ C_8 \f$ (DEIGM5), internuclear distance (DEIGR), and Depth of potential \f$ V(R) \f$ at equilibrium (DEIGDe).
+!!
+!!
+!! The definition of the long-range tail of the MLR potential for the \f$ 1^3 \sum_{g}^{+} \f$ is given by:
+!!  \f[
+!!      u_{LR} \equiv -\lambda_{min}^{ret} (C_3^\sum,C_6^{adj},C_8^\sum ; r) + \frac{C_9^{adj}}{r^9}
+!!  \f]
+!! where \f$ \lambda_{min}^{ret} (C_3^\sum,C_6^{adj},C_8^\sum ; r) \f$ is the lowest energy eigenvalue of the interaction energy matrix above.
+!!
+     SUBROUTINE AF3X3potRet(RDIST,DELTAE,C3val,C6val,C8val,De,ULR,
      1                              DEIGM1,DEIGM3,DEIGM5,DEIGR,DEIGDe)
 c=======================================================================
       REAL*8  H(3,3),DM1(3,3),DM3(3,3),DM5(3,3),DR(3,3),
      1              DDe(3,3),Q(3,3)
       REAL*8  DEIGM1(1,1),DEIGM3(1,1),DEIGM5(1,1),DEIGR(1,1),
-     1        DEIGDe(1,1), EIGVEC(3,1), RESID(3,1), W(3) 
+     1        DEIGDe(1,1), EIGVEC(3,1), RESID(3,1), W(3)
       REAL*8  RDIST,RDIST2,RDIST3,DELTAE,C3val,C6val,C8val,De,ULR,
      1   RET,RETSig,RETPi,Modulus,M1,M3,M5,Z
       INTEGER          I,J,L,K
@@ -17,13 +27,13 @@ c=======================================================================
       RETPi= RETSig - RET**2 *DCOS(RET)
       RDIST2= RDIST**2
       RDIST3= RDIST*RDIST2
-*      WRITE(25,*) 'Variables = "r", "U(r)","U(r)-U(r)^2/(4De)" ' 
+*      WRITE(25,*) 'Variables = "r", "U(r)","U(r)-U(r)^2/(4De)" '
 *      WRITE(25,*) 'zone T = "U(r)"'
 c  Initialize interaction matrix to 0.d0
       DO  I= 1,3
           H(I,I)=0.0D0
           ENDDO
-ccccc Prepare interation matrix  H 
+ccccc Prepare interation matrix  H
       H(1,1)= -(M1*RETSig+ M3/(RDIST3)+M5/(RDIST3*RDIST2))/(3.d0*RDIST3)
       H(1,2)= -(DSQRT(2.D0))*H(1,1)
       H(2,1)= H(1,2)
@@ -34,7 +44,7 @@ ccccc Prepare interation matrix  H
       H(3,2)= H(2,3)
       H(3,3)= DELTAE
 cccccc Prepare radial derivative of interaction matrix (? is it needed ?)
-      DR(1,1)= (3.d0*M1*RETSig + 6.d0*M3/RDIST3 
+      DR(1,1)= (3.d0*M1*RETSig + 6.d0*M3/RDIST3
      1                  + 8.D0*M5/(RDIST3*RDIST2))/(3.d0*RDIST3*RDIST)
       DR(1,2)= -DSQRT(2.d0)*DR(1,1)
       DR(2,1)= DR(1,2)
@@ -43,7 +53,7 @@ cccccc Prepare radial derivative of interaction matrix (? is it needed ?)
       DR(3,1)= DR(1,3)
       DR(2,3)= -3.d0*H(2,3)/RDIST
       DR(3,2)= DR(2,3)
-      DR(3,3)= 0.d0 
+      DR(3,3)= 0.d0
 cccccc Partial derivative of interaction matric  H  w.r.t.  C3
       DM1(1,1)= -(RETSig + M1/(2.d0*De*RDIST3))/(3.d0*RDIST3)
       DM1(1,2)= -DSQRT(2.d0)*DM1(1,1)
@@ -92,28 +102,29 @@ ccc Nor - identify the lowest eigenvalue of  H  and label it  L
           IF (W(J) .LT. W(L)) THEN
               L=J
               ENDIF
-          ENDDO  
+          ENDDO
       ULR= -W(L)
-      DO I=1,3      
+      DO I=1,3
           EIGVEC(I,1) = Q(I,L)
-          ENDDO  
+          ENDDO
    30 DEIGM1= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM1,EIGVEC))
    40 DEIGM3= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM3,EIGVEC))
-   50 DEIGM5= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM5,EIGVEC))           
+   50 DEIGM5= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DM5,EIGVEC))
    60 DEIGR = -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DR,EIGVEC))
    70 DEIGDe= -MATMUL(TRANSPOSE(EIGVEC),MATMUL(DDe,EIGVEC))
-c     WRITE(25,600) RDIST ,ULR 
+c     WRITE(25,600) RDIST ,ULR
 c 600 FORMAT(2D16.7)
 c     WRITE(26,601) RDIST , DEIGM1, DEIGR ,DEIGDe
-c 601 FORMAT(4D16.7)  
-      Modulus = (Z)**2 
+c 601 FORMAT(4D16.7)
+      Modulus = (Z)**2
       RETURN
       end
 **    CONTAINS
 *=======================================================================
+!> Sets up and inverts the matrix H and returns eigenvalues W and eigenvector matrix Q.
       SUBROUTINE ZHEEVJ3(H,Q,W)
 *=======================================================================
-c** Subroutine to setup and invert the matrix  H  and return 
+c** Subroutine to setup and invert the matrix  H  and return
 c   eigenvalues W and eigenvector matric  Q
       INTEGER   N, I, X, Y, R
       PARAMETER (N=3)
@@ -160,7 +171,7 @@ cc    DOUBLE PRECISION FUNCTION SQRABS
           DO  X= 1, N
               DO  Y= X+1, N
 **                G= 100.0D0*(ABS(DREAL(H(X, Y))) )
-                  G= 100.0D0*(ABS(H(X, Y))) 
+                  G= 100.0D0*(ABS(H(X, Y)))
                   IF((I.GT.4).AND.((ABS(W(X))+G).EQ.ABS(W(X)))
      $                         .AND.((ABS(W(Y))+G).EQ.ABS(W(Y)))) THEN
                       H(X, Y)= 0.0D0
@@ -222,8 +233,9 @@ cc                    Z= DREAL(T * (H(X, Y)))
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 *=======================================================================
+!> Calculates the squared absolute value of a complex number Z
       DOUBLE PRECISION FUNCTION SQRABS(Z)
-*=======================================================================
+*======================================================================
 * Calculates the squared absolute value of a complex number Z
 * ----------------------------------------------------------------------
 *  Parameters ..
@@ -236,3 +248,5 @@ c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 *
 **     END SUBROUTINE AF3X3potRet
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
+
+

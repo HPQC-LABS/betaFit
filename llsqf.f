@@ -1,7 +1,52 @@
-c***********************************************************************
+!> Program for performing linear least squares fits using orthogonal decomposition of the Design (partial derivative) matrix.
+!! It is designed for the data sets of modest size where it is convenient to generate and store the complete
+!! partial derivative matrix prior to calling LLSQF.  If this is not the case, subroutine version LLSQFVL,
+!! which generates this partial derivative array one row at a time through calls to a user-supplied subroutine,
+!! should be used.
+!!
+!! On Entry:
+!!-----------------------------------------------------------------------
+!! \f$ NDATA \f$ is the number of data to be fitted (\f$ \leq MXDATA \f$).
+!!
+!! \f$ NPARM \f$ is the number of parameters to be varied (\f$ \leq MXPARM \f$).
+!!
+!!      If NPARM is <= 0, assume YD(i) = YO(i) and calculate the (RMS dimensionless deviation) = DSE from them & YU(i).
+!!
+!! \f$ MXDATA \f$ & \f$ MXPARM \f$ are array dimension parameters (see below). Internal array sizes currently assume MXPARM \f$ \leq \f$ 60.
+!!
+!! \f$ YO(i) \f$ are the \f$ NDATA \f$ 'observed' data; for iterative non-linear fits these are: \f$ [Y(obs,i) - Y(trial,i)] \f$.
+!!
+!! \f$ YU(i) \f$ are the uncertainties in these \f$ YO(i) \f$ values.
+!!
+!! \f$ DYDP(i,j) \f$ is the partial derivative array \f$ \frac{dYO(i)}{dPV(j)} \f$.
+!!
+!! On Exit:
+!!-----------------------------------------------------------------------
+!! \f$ PV(j) \f$ are the fitted parameter values; for iterative non-linear fits these are the parameter changes.
+!!
+!! \f$ PU(j) \f$ are 95% confidence limit uncertainties in the \f$ PV(j) \f$'s.
+!!
+!! \f$ PS(j) \f$ are 'parameter sensitivities' for the \f$ PV(j) \f$'s, defined such that the RMS displacement of predicted data
+!! due to rounding off parameter-j by \f$ PS(j) \f$ is \f$ \leq \frac{DSE}{10NPARM} \f$.
+!!
+!! \f$ DSE \f$ is predicted (dimensionless) standard error of the fit.
+!!
+!! \f$ YD(i) \f$ is the array of differences \f$ [YO(i) - Ycalc(i)] \f$.
+!! \f$ CM(j,k) \f$ is the correlation matrix obtained by normalizing variance/covariance matrix:
+!!  \f[
+!!      CM(j,k) = \frac{CM(j,k)}{\sqrt{CM(j,j)*CM(k,k)}}
+!!  \f]
+!! The squared 95% confidence limit uncertainty in a property \f$ F({PV(j)}) \f$ defined in terms of the
+!! fitted parameters \f$ {PV(j)} \f$ is (where the L.H.S. involves \f$ [row]*[matrix]*[column] \f$ multiplication):
+!!  \f[
+!!      [D(F)]^2 = [PU(1)*\frac{dF}{dPV}(1), PU(2)*\frac{dF}{dPV}(2), ...]*[CM(j,k)]*[PU(2)*\frac{dF}{dPV}(1), PU(2)*\frac{dF}{dPV}(2), ...]
+!!  \f]
+!! Externally dimension:  \f$ YO \f$, \f$ YU \f$ and \f$ YD \geq NDATA \f$ (say as \f$ MXDATA \f$), \f$ PV \f$, \f$ PU \f$ and \f$ PS \geq NPARM \f$ (say as \f$ MXPARM \f$),
+!! \f$ DYDP \f$ with column length \f$ MXDATA \f$ and row length \f$ \geq NPARM CM \f$ as a square matrix with column & row length \f$ MXPARM \f$.
+!!
       SUBROUTINE LLSQF(NDATA,NPARM,MXDATA,MXPARM,YO,YU,DYDP,YD,PV,PU,PS,
      1                 CM,DSE)
-c**  Program for performing linear least squares fits using orthogonal 
+c**  Program for performing linear least squares fits using orthogonal
 c  decomposition of the Design (partial derivative) matrix.
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c                COPYRIGHT 2000  by  Robert J. Le Roy                  +
@@ -10,9 +55,9 @@ c    This software may not be sold or any other commercial use made    +
 c      of it without the express written permission of the author.     +
 c+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 c** This version of the program is designed for the data sets of modest
-c  size where it is convenient to generate and store the complete 
+c  size where it is convenient to generate and store the complete
 c  partial derivative matrix prior to calling LLSQF.  If this is not the
-c  case, subroutine version LLSQFVL, which generates this partial 
+c  case, subroutine version LLSQFVL, which generates this partial
 c  derivative array one row at a time through calls to a user-supplied
 c  subroutine, should be used.
 c
@@ -22,7 +67,7 @@ c                 If NPARM.le.0 , assume  YD(i)=YO(i)  and calculate the
 c                 (RMS dimensionless deviation)=DSE  from them & YU(i)
 c             MXDATA & MXPARM are array dimension parameters (see below)
 c                 Internal array sizes currently assume  MXPARM .le. 60
-c             YO(i)  are the NDATA 'observed' data;  for iterative 
+c             YO(i)  are the NDATA 'observed' data;  for iterative
 c                  non-linear fits these are:  [Y(obs,i) - Y(trial,i)]
 c             YU(i)  are the uncertainties in these YO(i) values
 c             DYDP(i,j)  is the partial derivative array  dYO(i)/dPV(j)
@@ -43,14 +88,14 @@ c  L.H.S. involves  [row]*[matrix]*[column]  multiplication):
 c  [D(F)]^2 = [PU(1)*dF/dPV(1), PU(2)*dF/dPV(2), ...]*[CM(j,k)]*
 c                              [PU(2)*dF/dPV(1), PU(2)*dF/dPV(2), ...]
 c** Externally dimension:  YO, YU and YD  .ge. NDATA (say as MXDATA),
-c             PV, PU  and  PS  .ge.  NPARM (say as MXPARM), 
+c             PV, PU  and  PS  .ge.  NPARM (say as MXPARM),
 c             DYDP  with column length MXDATA and row length .ge. NPARM
 c             CM   as a square matrix with column & row length  MXPARM
 c  Authors: Robert J. Le Roy  &  Michael Dulick, Department of Chemistry
 c    U. of Waterloo, Waterloo, Ontario  N2L 3G1.    Version of: 07/10/00
 c***********************************************************************
       INTEGER I,J,K,L,IDF,NDATA,MXDATA,NPARM,MXPARM
-      REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPARM), PU(NPARM), 
+      REAL*8  YO(NDATA), YU(NDATA), YD(NDATA), PV(NPARM), PU(NPARM),
      1   PS(NPARM), DYDP(MXDATA,NPARM), CM(MXPARM,MXPARM), DSE,
      2   PX(60), F95(10), TFACT, S, U
       DATA F95/12.7062D0,4.3027D0,3.1824D0,2.7764D0,2.5706D0,2.4469D0,
@@ -78,7 +123,7 @@ c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
       IF(NDATA.GT.NPARM) THEN
           IDF= NDATA-NPARM
           IF(IDF.GT.10) TFACT= 1.960D0*DEXP(1.265D0/DFLOAT(IDF))
-          IF(IDF.LE.10) TFACT= F95(IDF) 
+          IF(IDF.LE.10) TFACT= F95(IDF)
         ELSE
           TFACT= 0.D0
         ENDIF
@@ -91,8 +136,8 @@ c [Approximate expression for (NDATA-NPARM).GT.10 accurate to ca. 0.002]
               ENDDO
           ENDDO
 c
-c** Begin by forming the Jacobian Matrix from the input partial 
-c  derivative matrix DYDP.  For VERY large data sets, these partial 
+c** Begin by forming the Jacobian Matrix from the input partial
+c  derivative matrix DYDP.  For VERY large data sets, these partial
 c  derivatives may be generated inside this loop (see version LLSQFVL).
       DO  I = 1,NDATA
           S = 1.D0 / YU(I)
@@ -103,7 +148,7 @@ c  derivatives may be generated inside this loop (see version LLSQFVL).
           CALL QQROD(NPARM,MXPARM,MXPARM,CM,PV,PX,U,PS,PU)
           ENDDO
 c
-c** Compute the inverse of  CM 
+c** Compute the inverse of  CM
       CM(1,1) = 1.D0 / CM(1,1)
       DO  I = 2,NPARM
           L = I - 1
@@ -184,6 +229,33 @@ c
      1PARM, MXPARM)  =  (',I5,4(' ,',I5),' )')
       END
 c***********************************************************************
+!> Performs orthogonal decomposition of the linear least-squares equation:
+!!  \f[
+!!      (J*X = F) \rightarrow (A*X = B(Transpose)*F)
+!!  \f]
+!! where \f$ J \f$ is the Jacobian in which the first \f$ N \f$ rows and columns are transformed
+!! to the upper triangular matrix \f$ A (J = B*A) \f$, X is the independent variable vector, and F is
+!! the dependent variable vector. The transformation is applied to one row of the Jacobian matrix at a time.
+!!
+!! Parameters:
+!!-----------------------------------------------------------------------
+!! \f$ N \f$ (Integer) is the dimension of \f$ A \f$ to be transformed.
+!!
+!! \f$ NR \f$ (Integer) is the row dimension of a declared in calling program.
+!!
+!! \f$ NC \f$ (Integer) is the column dimension of \f$ F \f$ declared in calling program.
+!!
+!! \f$ A \f$ (Real*8 array of dimensions \f$ \geq N*N \f$) upper triangular transformation matrix.
+!!
+!! \f$ R \f$ (Real*8 linear array of dimension \f$ \geq N \f$) row of Jacobian to be added.
+!!
+!! \f$ F \f$ (Real*8 linear array \f$ \geq \f$ to the row dimension of the Jacobian) transformed dependent variable matrix.
+!!
+!! \f$ B \f$ (Real*8) value of \f$ F \f$ that corresponds to the added Jacobian row.
+!!
+!! \f$ GC \f$ (Real*8 linear array \f$ \geq N \f$) givens cosine transformations.
+!!
+!! \f$ GS \f$ (Real*8 linear array \f$ \geq N \f$) givens sine transformations.
 	SUBROUTINE QQROD(N,NR,NC,A,R,F,B,GC,GS)
 C** Performs ORTHOGONAL DECOMPOSITION OF THE LINEAR LEAST-SQUARES    
 C            EQUATION J * X = F TO A * X = B(TRANSPOSE) * F WHERE   

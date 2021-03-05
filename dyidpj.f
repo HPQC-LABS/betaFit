@@ -1,8 +1,16 @@
-c***********************************************************************
+!> Subroutine to calculate potential function value \f$ YC \f$ at distance:
+!!  \f[
+!!      RDIST= RTP(IDAT)
+!!  \f]
+!! and its partial derivatives with respect to the various potential parameters.
+!!
+!! If \f$ IDAT \leq \f$ 1, then the subroutine will generate a new set of internal potential variables.
+!!
+!! If \f$ IDAT \f$ > 1, then the subroutine will use SAVED values.
       SUBROUTINE DYIDPJ(IDAT,NDATA,NPARM,IFXP,YC,PV,PD,PS,RMSR)
 c** Subroutine to calculate potential function value YC at distance
-c  RDIST= RTP(IDAT), and its partial derivatives w.r.t. the various 
-c  potential parameters.  If  IDAT.LE.1  generate a new set of 
+c  RDIST= RTP(IDAT), and its partial derivatives w.r.t. the various
+c  potential parameters.  If  IDAT.LE.1  generate a new set of
 c  internal potential variables, while if  IDAT > 1  use SAVED values
 c... [Must ensure that calculations based on the current UPDATED PV(j)]
 c------------------------------------------------------------------------
@@ -112,17 +120,17 @@ c ... for Aubert-Frecon Li2(A) 2x2 {3,0,6,6,8,8} case ...
                       T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
                       ULRe= 0.5d0*( - CmVAL(2) + (1.5d0*CmVAL(1)
      1         + (C6adj + CmVAL(4))*RE3)*RE3) + 0.5d0*T0 + C9adj*RE6*RE3
-                      IF(NCMM.GT.4) 
+                      IF(NCMM.GT.4)
      1                        ULRe= ULRe+0.5d0*(CmVAL(5)+CmVAL(6))*RE8
                       T0P= (9.d0*T1-CmVAL(2))/T0
                       dULRe= -RE3*(0.25d0*CmVAL(1)*(9.d0 + T0P)
      1               + RE3*(C6adj*(3.d0 + T0P) + CmVAL(4)*(3.d0 - T0P)
      2                                           + RE3*9.d0*C9adj))/Re
                       IF(NCMM.GT.4) THEN
-                          dULRe= dULRe -RE8*4.d0*(CmVAL(5) 
+                          dULRe= dULRe -RE8*4.d0*(CmVAL(5)
      1                *(3.d0 + T0P) + CmVAL(6)*(3.d0 - T0P))/(3.d0*Re)
                           ENDIF
-                      ENDIF 
+                      ENDIF
                   IF(MMLR(2).EQ.-1) THEN
 c ... for Aubert-Frecon Li2(c) 3x3 {3,0,6,6,8,8} case ...
                       CALL AF3x3potret(Re,CmVAL(2),CmVAL(1),C6adj,
@@ -159,7 +167,7 @@ c   then fix the  beta(N) value ...
                       ENDDO
                   C1tst= BETA0/uLre
                   BETAN= DLOG(DSQRT(4.d0*De*IDSTT*116140.97d0)/BETA0)
-                  BETA0= DLOG(DSQRT(IDSTT*116140.97d0/De)*uLRe/BETA0) 
+                  BETA0= DLOG(DSQRT(IDSTT*116140.97d0/De)*uLRe/BETA0)
                   C1tst= De*(DEXP(BETA0)*C1tst)**2
 c*** For constrained C1/r case, now define  beta(N)
                   BETAN= -0.5D0*BETAN*(-1)**NPOW
@@ -219,7 +227,7 @@ c ... extension for Aubert-Frecon Li2(A) {3,0,6,6,8,8} case ...
                       T1= T1+ (CmVAL(5)- CmVAL(6))*RTP8/3.d0
                       ENDIF
                   T0= DSQRT((T1- CmVAL(2))**2 + 8.d0*T1**2)
-                  ULR= 0.5d0*( - CmVAL(2) + (1.5d0*CmVAL(1) + (C6adj 
+                  ULR= 0.5d0*( - CmVAL(2) + (1.5d0*CmVAL(1) + (C6adj
      1            + CmVAL(4))*RTP3)*RTP3) + 0.5d0*T0 + C9adj*RTP3*RTP6
                   IF(NCMM.GT.4) ULR= ULR+0.5d0*(CmVAL(5)+ CmVAL(6))*RTP8
 c... SKIP Re derivative corrections for all?
@@ -254,7 +262,7 @@ c** For normal inverse-power sum MLR/MLJ case, with or without damping
 c... finalize derivative w.r.t. exponent beta-function spline points ...
               DO  J= 1,NPOW
                   PD(J)= PD(J)*DER*ype
-                  ENDDO 
+                  ENDDO
             ELSE
 c... finalize derivative w.r.t. exponent polynomial coefficient ....
               DO  j= 1,NPOW
@@ -269,11 +277,11 @@ c** If appropriate, also get partial derivative w.r.t. Re
           IF(JFXRe.LE.0) THEN
               dype= -0.5d0*(p/RE)*(1.d0 - yp**2)
               IF(RREF.LE.0.d0) THEN
-                  DSUM= betaINF - SUM/(1.d0-yp) + DSUM 
+                  DSUM= betaINF - SUM/(1.d0-yp) + DSUM
                 ELSE
                   DSUM= 0.d0
                 ENDIF
-              PD(NPHI+1)= DER*(dype*(XP + ype*DSUM) 
+              PD(NPHI+1)= DER*(dype*(XP + ype*DSUM)
      1                               + (1.d0 - ype*yp)*dULRe/ULRe )
               ENDIF
           ENDIF
@@ -293,7 +301,7 @@ c-----------------------------------------------------------------------
               dULRe= 0.d0
               d2ULRe= 0.d0
 c-----------------------------------------------------------------------
-c** Evaluate uLR & its first 2 deriv. at  Re ... 
+c** Evaluate uLR & its first 2 deriv. at  Re ...
               KDER=2
               IF(rhoAB.GT.0.d0) CALL dampF(Re,rhoAB,NCMM,MMLR,IDF,
      1                                         IDSTT,KDER,DM,DMP,DMPP)
@@ -391,7 +399,7 @@ c-----------------------------------------------------------------------
           IF(JFXRe.LE.0) THEN
               PD(NPHI+2)= -DSUM* (p/Re)*Rep*RTPp*(as+bs)/
      1                                            (as*RTPp +bs*Rep)**2
-              ENDIF 
+              ENDIF
           ENDIF
 c=======================================================================
 c%%%%%%%
@@ -409,10 +417,10 @@ c%%%%%%%
       END
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
-c***********************************************************************
+!> At the position \f$ 'x' \f$, evaluates the \f$ m^{th} Sm(x) \f$ function contributing the definition of the the natural cubic spline defined by function values at the \f$ n \f$ points \f$ y(i) [i=1,n] \f$
       double precision function Scalc(x,m,n,y,rKL,LMAX)
-c** At the position 'x', evaluate the m'th Sm(x) function contributing 
-c  the definition of the the natural cubic spline defined by 
+c** At the position 'x', evaluate the m'th Sm(x) function contributing
+c  the definition of the the natural cubic spline defined by
 c  function values at the  n  points  y(i) [i=1,n]
       INTEGER  LMAX,I,K,KK,M,N
       REAL*8  x,y1,y2,y(1:LMAX),rKL(1:LMAX,1:LMAX)
@@ -434,7 +442,7 @@ c... select interval
       y1=y(k-1)
       y2=y(k)
       Scalc= 0.d0
-      IF(kk.eq.0) 
+      IF(kk.eq.0)
      1    Scalc= rKL(m,k)*((y1-x)*(((y1-x)/(y1-y2))**2-1)/6)*(y1-y2)
      2         + rKL(m,k-1)*((x-y2)*(((x-y2)/(y1-y2))**2-1)/6)*(y1-y2)
       IF(k.EQ.m) Scalc= Scalc + (y1-x)/(y1-y2)
@@ -443,6 +451,10 @@ c... select interval
 c23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 
 c***********************************************************************
+!> Call this subroutine with list of the \f$ 'n' \f$ spline \f$ x_i \f$ values in array
+!!   \f$ 'x' \f$ with maximum dimension \f$ 'LMAX' \f$ and it will return the \f$ LMAX \f$ x \f$ LMAX \f$
+!!   array of \f$ 'rKL' \f$ coefficients used for generating the \f$ 'n' S_n(x) \f$
+!!   spline coefficient functions.
       subroutine Lkoef(n,x,A,LMAX)   
 c*** Based on nespl subroutine          
       INTEGER LMAX
