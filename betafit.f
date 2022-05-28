@@ -25,7 +25,7 @@ c***********************************************************************
 c-----------------------------------------------------------------------
       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,sVSR2,IDSTT,KDER,NCMM,p,q,Nbeta,
      1                             APSE,MMLR(MXMLR),IFXCm(MXMLR)
-      REAL*8 Re,De,VMIN,RREF,M2,as,bs,rhoAB, SUM,
+      REAL*8 Re,De,VMIN,RREF,M2,as,bs,rhoAB,SUM,
      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM)
       COMMON /DATABLK/Re,De,VMIN,RREF,M2,as,bs,rhoAB,CmVAL,RTP,SAS,PSEL,
      1 IFXRe,IFXDe,IFXVMIN,sVSR2,IDSTT,KDER,NCMM,MMLR,p,q,Nbeta,APSE,SUM
@@ -1102,7 +1102,7 @@ c------------------------------------------------------------------------
 c-----------------------------------------------------------------------
       INTEGER PSEL,IFXRe,IFXDe,IFXVMIN,sVSR2,IDSTT,KDER,NCMM,p,q,Nbeta,
      1                             APSE,MMLR(MXMLR),IFXCm(MXMLR)
-      REAL*8 Re,De,VMIN,RREF,M2,as,bs,rhoAB, SUM,
+      REAL*8 Re,De,VMIN,RREF,M2,as,bs,rhoAB,SUM,
      1  CmVAL(MXMLR),RTP(MXDATA),SAS(MXDATA,MXPARM)
       COMMON /DATABLK/Re,De,VMIN,RREF,M2,as,bs,rhoAB,CmVAL,RTP,SAS,PSEL,
      1 IFXRe,IFXDe,IFXVMIN,sVSR2,IDSTT,KDER,NCMM,MMLR,p,q,Nbeta,APSE,SUM

@@ -1,8 +1,10 @@
 # option to select compiler (intel 'ifort', or SUN 'f77', 'f90 or f95)
 #   as in :   make FC=ifort
 ifndef $FC
-#  FC = ifort                    # default compiler on this machine
-   FC = f90                      # default compiler on this machine
+   FC = ifort    # Intel
+#  FC = f90  
+#  FC = f77  
+#  FC = gfortran # GCC
 endif
 #
 #option to choose level of optimization:  make DEBUG=1
@@ -18,10 +20,10 @@ endif
 #
 # as usual, list the objects
 #
-OBJECTS = betaFIT.o nllssrr.o llsqf.o AF3X3potRet.o dampF.o
+OBJECTS = betafit.o nllssrr.o llsqf.o AF3X3potRet.o dampF.o
 
 betafit: $(OBJECTS)
-	$(FC) $(FFLAGS) $(OBJECTS) -o tbetaf.x
+	$(FC) $(FFLAGS) $(OBJECTS) -o betaf.x
 #--------------------------------------------------------------
 # Form from Sean Mcleod,  13 February 2008
 #--------------------------------------------------------------
