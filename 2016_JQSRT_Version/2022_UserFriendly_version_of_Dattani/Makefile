@@ -33,3 +33,5 @@ fit: $(OBJECTS)
 # This will create out.6 and fort.7. 
 
 # If you are using the 1-s2.0-S0022407316300966-mmc2.txt from LeRoy's paper as your .f file then MAKE SURE TO COMMENT the two lines starting with = signs or the code will likely not compile!!!
+
+# Ther's also an error in mm3.txt from LeRoy's paper: the PE-MLR (polynomial-exponent MLR, vs spline-exponent MLR) section needs to have non-zero q-values. See the MLR folder that was created in this commit.
