@@ -1,0 +1,109 @@
+nagfor -O2               -c -o 1-s2.0-S0022407316300966-mmc2.o 1-s2.0-S0022407316300966-mmc2.f
+NAG Fortran Compiler Release 7.1(Hanzomon) Build 7114
+Evaluation trial version of NAG Fortran Compiler Release 7.1(Hanzomon) Build 7114
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 39: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 50: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 55: Byte count on numeric data type
+                        detected at *@8
+Error: 1-s2.0-S0022407316300966-mmc2.f, line 1075: Missing comma in format specification
+       detected at 3X@'DSE='
+Error: 1-s2.0-S0022407316300966-mmc2.f, line 1109: Missing comma in format specification
+       detected at 'ypRE'@4X
+Error: 1-s2.0-S0022407316300966-mmc2.f, line 1121: Missing comma in format specification
+       detected at 28X@'and turns over at   R='
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable BETAN
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable C6ADJ
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable C9ADJ
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable DEIGDE
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable DEIGM1
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable DEIGM3
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable DEIGM5
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable DEIGR
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable DEIGRE
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable NLIN
+Questionable: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Variable RBB set but never referenced
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable RE3
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable RE6
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable RE8
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable RTP3
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable RTP6
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable RTP8
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable T1
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable TCM
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable UM
+Questionable: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Variable YPEQ set but never referenced
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1125: Unused local variable YY
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1137: Byte count on numeric data type
+                        detected at *@8
+Error: 1-s2.0-S0022407316300966-mmc2.f, line 1221: Missing comma in format specification
+       detected at 'C'@I1
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1293: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1300: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1302: Byte count on numeric data type
+                        detected at *@8
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable C6ADJ
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable C9ADJ
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable DDER
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable DEIGM1
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable DEIGM3
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable DEIGM5
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable DEIGR
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable DEIGRE
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable FCT
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable FCT2
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable I
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused dummy variable NDATA
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable NPARM
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused dummy variable NPTOT
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused dummy variable PS
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable RE3
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable RE6
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable RE8
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable RTP3
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable RTP6
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable RTP8
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable SCALC
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable T0P
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable T1
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable TCM
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable TTMM
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Unused local variable UM
+Questionable: 1-s2.0-S0022407316300966-mmc2.f, line 1662: Variable YREPOW set but never referenced
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1675: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1718: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1772: Byte count on numeric data type
+                        detected at *@8
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 1866: Unused local variable NMAX
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 1985: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 2414: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 2459: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 2603: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 2764: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 2816: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 3037: Byte count on numeric data type
+                        detected at *@8
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 3038: Byte count on numeric data type
+                        detected at *@8
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 3128: Unused local variable DEIGMX
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 3128: Unused local variable MMTEMP
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 3128: Unused local variable MODULUS
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 3128: Unused local variable R9
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 3128: Unused local variable RESID
+Warning: 1-s2.0-S0022407316300966-mmc2.f, line 3128: Unused local variable Z
+Non-standard(Obsolete): 1-s2.0-S0022407316300966-mmc2.f, line 3159: Byte count on numeric data type
+                        detected at *@8
+[NAG Fortran Compiler pass 1 error termination, 4 errors, 76 warnings]
+<builtin>: recipe for target '1-s2.0-S0022407316300966-mmc2.o' failed
+make: *** [1-s2.0-S0022407316300966-mmc2.o] Error 2
