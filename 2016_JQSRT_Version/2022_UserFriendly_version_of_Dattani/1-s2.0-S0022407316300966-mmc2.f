@@ -368,8 +368,8 @@ c ... first define ordinate array
               yp= (RTPp - AREFp)/(RTPp + AREFp)
               IF(RTP(i).GT.Re) THEN
                   T0= (1.d0 - DSQRT((VTP(i)-VMIN)/De))
-                      IF(T0.LT.0.d0) THEN
-                          WRITE(6,612) i,RTP(i)
+                      IF(T0.LT.0.d0) THEN        ! This would mean we'd be about to do the ln() of a negative number.
+                          WRITE(6,612) i,RTP(i) 
                           STOP
                           ENDIF
                   betay(i)= - DLOG(T0)
