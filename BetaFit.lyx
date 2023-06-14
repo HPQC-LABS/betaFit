@@ -1,0 +1,1901 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass revtex4-1
+\options notitlepage
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine natbib
+\cite_engine_type authoryear
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+betaFIT: A software for fitting points to functions
+\end_layout
+
+\begin_layout Section*
+Extendend Morse oscillator
+\end_layout
+
+\begin_layout Standard
+Consider the EMO function:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
+V(r) & =\mathfrak{D}_{e}\left(1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right)\right)^{2}+V_{e}.\label{eq:EMO}
+\end{align}
+
+\end_inset
+
+If we know 
+\begin_inset Formula $V(r),$
+\end_inset
+
+
+\begin_inset Formula $\mathfrak{D}_{e}$
+\end_inset
+
+ and 
+\begin_inset Formula $r_{e}$
+\end_inset
+
+, then we can obtain a corresponding function 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+.
+ However, similar to the equation 
+\begin_inset Formula $4=x^{2}$
+\end_inset
+
+ having two real-number solutions, for each value of 
+\begin_inset Formula $r$
+\end_inset
+
+, there can be more than one real number 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+ that satisfies Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:EMO"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ To find the possible values of 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+, we can start with the following rearrangement:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}=\left(1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right)\right)^{2}.\label{eq:solvingEMOforBeta_beforeSquareRooting}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula $V(r)\ge V_{e}$
+\end_inset
+
+ for all 
+\begin_inset Formula $r$
+\end_inset
+
+, because 
+\begin_inset Formula $V_{e}$
+\end_inset
+
+ is defined as the minimum value of 
+\begin_inset Formula $V(r).$
+\end_inset
+
+ Also, 
+\begin_inset Formula $\mathfrak{D}_{e}>0$
+\end_inset
+
+ for bound potentials, so the left 
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Why do we say left HAND side instead of just left side?
+\end_layout
+
+\end_inset
+
+side cannot be negative.
+ We can then proceed as follows:
+\end_layout
+
+\begin_layout Standard
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset VSpace medskip
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="4" columns="6">
+<features tabularvalignment="middle">
+<column alignment="right" valignment="top">
+<column alignment="left" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="right" valignment="top">
+<column alignment="left" valignment="top">
+<column alignment="left" valignment="top">
+<row>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $4$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+\begin_inset Formula $=x^{2}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+\begin_inset Formula $\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $=\left(1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right)\right)^{2}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\pm\sqrt{4}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $=x$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\pm\sqrt{\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $=1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right).$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="right" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Instead of a table array, equation numbering is easier if we can do something
+ like alignat{4}
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{align}
+4 & =x^{2} &  & \frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}} & =\left(1-\exp\left(-\beta(r)(r-r_{e})\right)\right)^{2}\nonumber \\
+\pm\sqrt{4} & =x &  & \pm\sqrt{\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}} & =1-\exp\left(-\beta(r)(r-r_{e})\right).\label{eq:plusMinus4}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+The 
+\begin_inset Formula $+\sqrt{4}$
+\end_inset
+
+ in the equation above corresponds to 
+\begin_inset Formula $x>0$
+\end_inset
+
+ and the 
+\begin_inset Formula $-\sqrt{4}$
+\end_inset
+
+ corresponds to 
+\begin_inset Formula $x<0,$
+\end_inset
+
+ and similarly we have:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
++\sqrt{\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}}=1-\exp\left(-\beta(r)(r-r_{e})\right) & ,\,\,\,\,\,1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right)>0\\
+-\sqrt{\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}}=1-\exp\left(-\beta(r)(r-r_{e})\right) & ,\,\,\,\,\,1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right)<0,
+\end{align}
+
+\end_inset
+
+and after considering the behavior of the 
+\begin_inset Formula $\exp$
+\end_inset
+
+ function more carefully we have:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
++\sqrt{\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}}=1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right) & ,\,\,\,\,\,\beta(r)(r-r_{e})>0\\
+-\sqrt{\frac{V(r)-V_{e}}{\mathcal{\mathfrak{D}}_{e}}}=1-\exp\left(-\beta(r)\left(r-r_{e}\right)\right) & ,\,\,\,\,\,\beta(r)(r-r_{e})<0.
+\end{align}
+
+\end_inset
+
+Rearranging, we get:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
+\beta(r)\left(r-r_{e}\right) & =-\ln\left(1-\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right),\,\,\,\,\,\beta(r)(r-r_{e})>0\\
+\beta(r)\left(r-r_{e}\right) & =-\ln\left(1+\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right),\,\,\,\,\,\beta(r)(r-r_{e})<0.
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+I'm not the sure what the best way to compactify the above equation is,
+ but here's an attempt:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{align}
+\beta(r) & =\frac{\ln\left(1\mp\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r},\begin{cases}
+- & \beta(r)(r-r_{e})>0\\
++ & \beta(r)(r-r_{e})<0.
+\end{cases}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We also know that 
+\begin_inset Formula $\ln(\cdot)>0$
+\end_inset
+
+ for arguments greater than 1, and 
+\begin_inset Formula $\ln(\cdot)<0$
+\end_inset
+
+ for arguments smaller than 1, and that 
+\begin_inset Formula $\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}>0$
+\end_inset
+
+, we can conclude the following, which completely agrees with what we derived
+ above:
+\begin_inset Formula 
+\begin{align}
+\ln\left(1-\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right) & <0\\
+\ln\left(1-\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right) & >0.
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Rearranging again yields:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
+\beta(r) & =\frac{\ln\left(1-\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r},\,\,\,\,\,\beta(r)(r-r_{e})>0\label{eq:betaWhenBeta(r-re)>0}\\
+\beta(r) & =\frac{\ln\left(1+\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r},\,\,\,\,\,\beta(r)(r-r_{e})<0.\label{eq:betaWhenBeta(r-re)<0}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We can now :
+\end_layout
+
+\begin_layout Itemize
+choose to use 
+\series bold
+\emph on
+only
+\emph default
+ 
+\series default
+Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:betaWhenBeta(r-re)>0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ with the consequence that 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+ will be negative in the inner wall of the potential well, then will switch
+ signs at 
+\begin_inset Formula $r_{e}$
+\end_inset
+
+; or we can 
+\end_layout
+
+\begin_layout Itemize
+choose to use 
+\series bold
+\emph on
+only
+\series default
+\emph default
+ Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:betaWhenBeta(r-re)<0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ with the consequence that 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+ will be positive in the inner wall of the potential well, then will switch
+ signs at 
+\begin_inset Formula $r_{e}$
+\end_inset
+
+; or we can 
+\end_layout
+
+\begin_layout Itemize
+choose 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+ to be always positive, with the consequence that we would have to switch
+ at 
+\begin_inset Formula $r_{e}$
+\end_inset
+
+ from using Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:betaWhenBeta(r-re)<0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ in the inner wall to using Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:betaWhenBeta(r-re)>0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ in the outer wall; or (among maybe other choices?) we can just 
+\end_layout
+
+\begin_layout Itemize
+choose either Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:betaWhenBeta(r-re)<0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ or Eq.
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:betaWhenBeta(r-re)>0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for each individual value of 
+\begin_inset Formula $r$
+\end_inset
+
+ depending on which choice gives us a smaller residual, but with the consequence
+ that 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+ will often be switching signs.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+This helped me figure out what was going on, but it might not be needed
+ anymore.
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="5" columns="9">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $r-r_{e}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\beta(r)\left(r-r_{e}\right)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\ln\left(1-\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\ln\left(1+\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\frac{\ln\left(1-\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\frac{\ln\left(1-\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r}=\beta(r)?$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $\frac{\ln\left(1+\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r}$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+\begin_inset Formula $\frac{\ln\left(1+\sqrt{\frac{V-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r}=\beta(r)?$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Yes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+No
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+No
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Yes
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+No
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Yes
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $-$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Yes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $+$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+No
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+Le Roy didn't say this explicitly, but he said that the 
+\begin_inset Formula $\mp$
+\end_inset
+
+ sign in the argument of the 
+\begin_inset Formula $\ln(\cdot)$
+\end_inset
+
+ function corresponds to the inner (
+\begin_inset Formula $r<r_{e})$
+\end_inset
+
+ and outter (
+\begin_inset Formula $r>r_{e})$
+\end_inset
+
+ walls of the potential well.
+ This 
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+seems to
+\end_layout
+
+\end_inset
+
+corresponds to 
+\begin_inset Formula $\beta(r)$
+\end_inset
+
+ being always positive or always negative, and the code indicates that it's
+ always positive:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename pasted1.png
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Linear regression
+\end_layout
+
+\begin_layout Standard
+Remember that:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\beta(r)\equiv\beta_{0}x(r)^{0}+\beta_{1}x(r)^{1}+\beta_{2}x(r)^{2}\cdots\beta_{N}x(r)^{N},
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
+x(r) & \equiv\frac{r^{p}-r_{e}^{p}}{r^{p}+r_{e}^{p}},
+\end{align}
+
+\end_inset
+
+for some value of 
+\begin_inset Formula $p$
+\end_inset
+
+ that is larger than 1.
+ We now have the following formula (with the 
+\begin_inset Formula $\pm$
+\end_inset
+
+ chosen in whatever of the above described ways that we wish to choose):
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{\ln\left(1\pm\sqrt{\frac{V(r)-V_{e}}{\mathfrak{D}_{e}}}\right)}{r_{e}-r}=\beta(r)\equiv\beta_{0}x(r)^{0}+\beta_{1}x(r)^{1}+\beta_{2}x(r)^{2}\cdots\beta_{N}x(r)^{N}
+\end{equation}
+
+\end_inset
+
+By defining the LHS to be 
+\begin_inset Formula $y(r)$
+\end_inset
+
+ we can write the last equation in a way that resembles the classic linear
+ regression formula:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+y(r)=\vec{x}(r)^{{\rm T}}\vec{\beta}+\varepsilon(r),
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+in which
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+perhaps label the equation with a left and right label
+\end_layout
+
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+If we don't want to take up too much vertical space
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{align}
+\vec{\beta}^{{\rm T}} & \equiv\begin{pmatrix}\beta_{0} & \beta_{1} & \beta_{2} & \cdots & \beta_{N}\end{pmatrix},\\
+\vec{x}^{{\rm T}} & \equiv\begin{pmatrix}x(r)^{0} & x(r)^{1} & x(r)^{2} & \cdots & x(r)^{N}\end{pmatrix}.
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align}
+\vec{\beta} & \equiv\begin{pmatrix}\beta_{0}\\
+\beta_{1}\\
+\beta_{2}\\
+\vdots\\
+\beta_{N}
+\end{pmatrix},\vec{x}\equiv\begin{pmatrix}x(r)^{0}\\
+x(r)^{1}\\
+x(r)^{2}\\
+\vdots\\
+x(r)^{N}
+\end{pmatrix}.
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If we know 
+\begin_inset Formula $V(r)$
+\end_inset
+
+ at 
+\begin_inset Formula $N_{V}$
+\end_inset
+
+ different values of 
+\begin_inset Formula $r$
+\end_inset
+
+, then we can define the following vectors:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\vec{y}\equiv\begin{pmatrix}y(r_{0})\\
+y(r_{1})\\
+y(r_{3})\\
+\vdots\\
+y(r_{N_{v}})
+\end{pmatrix},\vec{\epsilon}\equiv\begin{pmatrix}\epsilon(r_{0})\\
+\epsilon(r_{1})\\
+\epsilon(r_{3})\\
+\vdots\\
+\epsilon(r_{N_{v}})
+\end{pmatrix},
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and the following matrix:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\text{X}\equiv\begin{pmatrix}x(r_{0})^{0} & x(r_{0})^{1} & x(r_{0})^{2} & \cdots & x(r_{0})^{N}\\
+x(r_{1})^{0} & x(r_{1})^{1} & x(r_{1})^{2} & \cdots & x(r_{1})^{N}\\
+x(r_{2})^{0} & x(r_{2})^{1} & x(r_{2})^{2} & \cdots & x(r_{2})^{N}\\
+\vdots & \vdots & \vdots & \ddots & \vdots\\
+x(r_{N_{V}})^{0} & x(r_{N_{V}})^{1} & x(r_{N_{V}})^{2} & \cdots & x(r_{N_{V}})^{N}
+\end{pmatrix}.
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We now have the following desired equation:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\vec{y}=X\vec{\beta},
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+with the following solution (with 
+\begin_inset Formula $\backslash$
+\end_inset
+
+ being the 
+\begin_inset Quotes eld
+\end_inset
+
+backslash operator
+\begin_inset Quotes erd
+\end_inset
+
+ which is readily available in MATLAB, Octave or Julia):
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\vec{\beta}=X\backslash\vec{y}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+What's better in this version of BetaFit paper?
+\end_layout
+
+\begin_layout Itemize
+(1) MATLAB/Octave, python, and Julia codes available, (2) better explanations,
+ (3) more automation, such as increasing the number of parameters automatically,
+ (4) allowing arbitrary functions via symbolic linearlization? (5) testing
+ the alternative choices of +/-, rather than just saying one is for r >
+ r_e and one is for r < r_e, (6) change y(r) -> x(r) for linear regression
+ and add in everything else that would constitutte the most modern version
+ of the MLR (e.g.
+ simpler damping functions? testing value of extra yp(r) that Bob and I
+ argued about at grad house, testing r_p,reff vs r_q,reff, etc.).
+ (7) multidimensional potentials?
+\end_layout
+
+\begin_layout Itemize
+Quote from Bob's paper: 
+\begin_inset Quotes eld
+\end_inset
+
+The + and - signs in the logarithmic term correspond, respectively, to the
+ inner (r o r e ) and outer branches of the potential well
+\begin_inset Quotes erd
+\end_inset
+
+ Not if beta(r) can be <0, which seems to be the case in Fig 4 of the Calvin
+ Jary paper.
+ Even if it did correspond to inner and outer wells it seems, the way it's
+ written in the paper (which is copied and pasted from the manual) makes
+ it unclear what the author (Bob) meant.
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
